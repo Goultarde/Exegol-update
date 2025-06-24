@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# ───────────── CONFIGURATION ─────────────
+EXEGOL_PATH=$(which exegol)
+REPO_DIR="/opt/exegol-images"
+#REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
+#BRANCH="dev"
+REPO_URL="https://github.com/Goultarde/Exegol-images"
+BRANCH="main"
+BUILD_PROFILE="full"
+TAR_OUTPUT="/opt/exegol-tars/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
+CHECKSUM_FILE="/opt/exegol-tars/latest_commit.hash"
+LOGFILE="/var/log/exegol_wrapper.log"
+IMAGE_NAME="nightly-dev"
+
+# ───────────── LOGGER ─────────────
+
+log() {
+    echo "[$(date '+%F %T')] $*" | tee -a "$LOGFILE"
+}
+
+# ───────────── CLONE/UPDATE REPO ─────────────
+
+update_repo() {
+    if [ ! -d "$REPO_DIR" ]; then
+        log "Cloning Exegol-images repository..."
+        git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
+    else
+        log "Pulling latest changes..."
+        cd "$REPO_DIR" && git fetch origin "$BRANCH" && git reset --hard origin/"$BRANCH"
+    fi
+}
+
+# ───────────── DETECT CHANGES ─────────────
+detect_changes() {
+    cd "$REPO_DIR" || exit 1
+    LATEST_COMMIT=$(git rev-parse HEAD)
+    if [ -f "$CHECKSUM_FILE" ]; then
+        PREV_COMMIT=$(cat "$CHECKSUM_FILE")
+        if [ "$LATEST_COMMIT" = "$PREV_COMMIT" ]; then
+            log "No updates found on dev branch. Exiting."
+            exit 0
+        fi
+    fi
+    echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
+}
+
+# ───────────── BUILD IMAGE ─────────────
+
+build_exegol() {
+    log "Starting Exegol build for profile: $BUILD_PROFILE"
+
+    # Forcer le dossier d'export à exister
+    mkdir -p "$(dirname "$CHECKSUM_FILE")"
+    echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
+
+    # Appel automatique avec profil
+    "$EXEGOL_PATH" build $IMAGE_NAME $BUILD_PROFILE --build-path "$REPO_DIR/Dockerfile" || {
+        log "Build failed!"
+        exit 1
+    }
+}
+
+
+# ───────────── EXPORT IMAGE ─────────────
+
+export_image() {
+    mkdir -p "$(dirname "$TAR_OUTPUT")"
+    docker save -o "$TAR_OUTPUT" "nwodtuhs/exegol:$IMAGE_NAME"
+    log "Docker image saved to $TAR_OUTPUT"
+}
+
+# ───────────── RUN WRAPPER ─────────────
+main() {
+    update_repo
+    detect_changes
+    build_exegol
+    export_image
+    log "✅ Exegol update pipeline completed."
+}
+
+main
+

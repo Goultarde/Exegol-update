@@ -1,0 +1,12 @@
+services:
+  exegol-nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exegol-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - /opt/exegol-tars:/opt/exegol-tars:ro
+    restart: unless-stopped
+
