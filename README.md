@@ -26,7 +26,7 @@ sudo pipx install exegol
 ### 2. Cloner ce dépôt
 
 ```bash
-sudo git clone git@github.com:Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
+sudo git clone git@github.com:Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
 ```
 
 ### 3. Installer Docker et Docker Compose
