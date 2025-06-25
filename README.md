@@ -66,8 +66,11 @@ Depuis le dossier `client/` :
 
 ```bash
 cd client
-./exu-client [options]
+./initial_setup.sh
+exu-client [options]
 ```
+
+Si aucune option n'est fournie, exu-client télécharge et charge automatiquement la dernière image .tar disponible sur le serveur, sauf si elle est déjà présente localement. Une confirmation sera demandée avant chaque action importante, sauf si les mode --auto et ou --force sont activé.
 
 #### Options principales
 
