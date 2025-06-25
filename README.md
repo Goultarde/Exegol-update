@@ -1,7 +1,7 @@
 # ⚠️ AVERTISSEMENT : Projet en version bêta !
 
 Ce projet est en cours de développement. 
-- L'intégration crontab n'a pas encore été testée en profondeur. Utilisez avec précaution 
+- L'intégration crontab n'a pas encore été testée en profondeur. Utilisez avec précaution.
 
 # Exegol-update
 
@@ -44,15 +44,17 @@ Lancez le script d'initialisation pour préparer l'environnement :
 
 ```bash
 ./exu.sh
+#sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
 ```
 
 ### Déploiement du serveur
 
-Depuis le dossier `server/` :
+Depuis le dossier `./server` :
 
 ```bash
 cd server
 ./setup.sh
+#`contrab -e`  pour supprimer le crontab crée.
 ```
 
 Ce script :
@@ -69,6 +71,7 @@ cd client
 ./initial_setup.sh
 exu-client [options]
 ```
+`initial_setup.sh` = rend l'executable exu-client global.
 
 Si aucune option n'est fournie, exu-client télécharge et charge automatiquement la dernière image .tar disponible sur le serveur, sauf si elle est déjà présente localement. Une confirmation sera demandée avant chaque action importante, sauf si les mode --auto et ou --force sont activé.
 
