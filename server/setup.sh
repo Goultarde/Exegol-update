@@ -7,9 +7,16 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXEGOL_SCRIPT="$SCRIPT_DIR/exu-server"
-CRON_ENTRY="* * * * * $EXEGOL_SCRIPT"
 CRON_TMP="/tmp/crontab_check.txt"
 CONTAINER_NAME="exegol-nginx"
+CRON_ENTRY="* 2 * * * $EXEGOL_SCRIPT"
+#* * * * * commande
+#| | | | |
+#| | | | └── Jour de la semaine (0-7) (0 ou 7 = dimanche)
+#| | | └──── Mois (1-12)
+#| | └────── Jour du mois (1-31)
+#| └──────── Heure (0-23)
+#└────────── Minute (0-59)
 
 # ───────────── COULEURS ─────────────
 BLUE="\033[1;34m"
