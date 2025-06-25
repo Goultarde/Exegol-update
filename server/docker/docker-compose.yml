@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: exegol-nginx
     ports:
-      - "8080:80"
+      - "9000:80"
     volumes:
       - /opt/exegol-tars:/opt/exegol-tars:ro
     restart: unless-stopped

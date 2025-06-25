@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # ───────────── CONFIGURATION ─────────────
+
 EXEGOL_PATH=$(which exegol)
 REPO_DIR="/opt/exegol-images"
 #REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
@@ -32,6 +33,7 @@ update_repo() {
 }
 
 # ───────────── DETECT CHANGES ─────────────
+
 detect_changes() {
     cd "$REPO_DIR" || exit 1
     LATEST_COMMIT=$(git rev-parse HEAD)
@@ -71,6 +73,7 @@ export_image() {
 }
 
 # ───────────── RUN WRAPPER ─────────────
+
 main() {
     update_repo
     detect_changes
