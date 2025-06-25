@@ -33,7 +33,7 @@ prompt()  { echo -e "${YELLOW}[?]${RESET} $1"; }
 # ───────────── Préparation des dossiers ─────────────
 
 info "Création des répertoires si besoin..."
-mkdir -p /opt/exegol-tars
+mkdir -p /exu/exegol-update-server/exegol-tars
 mkdir -p /var/log
 
 # ───────────── Nettoyage Docker précédent ─────────────
