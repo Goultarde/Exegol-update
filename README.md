@@ -11,30 +11,37 @@ Exegol-update est un outil facilitant la gestion, la distribution et le chargeme
 
 ## Prérequis
 
-- Système Linux avec droits administrateur (root)
+- Système Linux connecter en tant que root (server)
 - [Exegol](https://github.com/ThePorgs/Exegol) installé sur le serveur (utilisé pour le build des images)
 - [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/) installés
 
 ## Installation
 
-### 1. Installer Exegol (sur le serveur)
+### 1. Installer Exegol, Docker et Docker Compose(sur le serveur)
+
 
 ```bash
-sudo pipx install exegol
+sudo su
+apt update -u && apt upgrade -y
+apt install python3-pip python3-venv git -y
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+pipx install exegol
 ```
+
+* Read and accept exegol eula
+```
+exegol info
+```
+
+* Installer docker également
 
 ### 2. Cloner ce dépôt
 
 ```bash
-sudo git clone git@github.com:Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
+git clone https://github.com/Goultarde/Exegol-update.git /opt/Exegol-update && cd /opt/Exegol-update
 ```
 
-### 3. Installer Docker et Docker Compose
-
-```bash
-sudo apt update
-sudo apt install docker docker-compose
-```
 
 ## Utilisation
 
@@ -44,7 +51,7 @@ Lancez le script d'initialisation pour préparer l'environnement :
 
 ```bash
 ./exu.sh
-#sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
+#sudo mkdir -p /exu
 ```
 
 ### Déploiement du serveur

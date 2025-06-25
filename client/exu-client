@@ -2,7 +2,8 @@
 
 # ────────────── CONFIGURATION ──────────────
 
-SERVER_URL="http://localhost:9000/"
+#SERVER_URL="http://localhost:9000/"
+SERVER_URL="http://10.4.10.244:9000/"
 DEST_DIR="/exu/exegol-update-client"
 DEFAULT_REPO="nwodtuhs/exegol"
 NEW_IMAGE_NAME="FreeNightly"
