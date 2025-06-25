@@ -9,10 +9,12 @@ REPO_DIR="/opt/exegol-images"
 REPO_URL="https://github.com/Goultarde/Exegol-images"
 BRANCH="main"
 BUILD_PROFILE="light"
-TAR_OUTPUT="/opt/exegol-tars/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
-CHECKSUM_FILE="/opt/exegol-tars/latest_commit.hash"
-LOGFILE="/var/log/exegol_wrapper.log"
+TAR_OUTPUT="/exu/exegol-tars/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
+CHECKSUM_FILE="/exu/exegol-tars/latest_commit.hash"
+LOGPATH=/opt/exegol-update-server/log
+LOGFILE="${LOGPATH}/exegol_wrapper.log"
 IMAGE_NAME="free$BUILD_PROFILE"
+mkdir -p $LOGPATH
 
 # ───────────── LOGGER ─────────────
 
