@@ -1,3 +1,7 @@
+# ⚠️ AVERTISSEMENT : Projet en version bêta !
+
+Ce projet est en cours de développement. L'intégration crontab n'a pas encore été testée en profondeur : son comportement peut varier selon les environnements. Utilisez avec précaution en production.
+
 # Exegol-update
 
 ## Présentation
