@@ -4,11 +4,13 @@
 
 EXEGOL_PATH='/root/.local/bin/exegol'
 REPO_DIR="/exu/exegol-images"
-#REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
-#BRANCH="dev"
-REPO_URL="https://github.com/Goultarde/Exegol-images"
-BRANCH="main"
-BUILD_PROFILE="light"
+REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
+BRANCH="dev"
+BUILD_PROFILE="full" # full=nighlty sur la branche dev
+#Mettre son fork de Exegol-images pour le test
+##REPO_URL="https://github.com/Goultarde/Exegol-images"
+##BRANCH="main"
+##BUILD_PROFILE="light"
 TARPATH="/exu/exegol-update-server/exegol-tars"
 TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
 CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
