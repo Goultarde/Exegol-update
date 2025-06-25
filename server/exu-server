@@ -2,17 +2,17 @@
 
 # ───────────── CONFIGURATION ─────────────
 
-EXEGOL_PATH=$(which exegol)
+EXEGOL_PATH='/root/.local/bin/exegol'
 REPO_DIR="/opt/exegol-images"
 #REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
 #BRANCH="dev"
 REPO_URL="https://github.com/Goultarde/Exegol-images"
 BRANCH="main"
-BUILD_PROFILE="full"
+BUILD_PROFILE="light"
 TAR_OUTPUT="/opt/exegol-tars/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
 CHECKSUM_FILE="/opt/exegol-tars/latest_commit.hash"
 LOGFILE="/var/log/exegol_wrapper.log"
-IMAGE_NAME="nightly-dev"
+IMAGE_NAME="free$BUILD_PROFILE"
 
 # ───────────── LOGGER ─────────────
 
@@ -69,6 +69,7 @@ build_exegol() {
 export_image() {
     mkdir -p "$(dirname "$TAR_OUTPUT")"
     docker save -o "$TAR_OUTPUT" "nwodtuhs/exegol:$IMAGE_NAME"
+    chmod -R o+r /opt/exegol-tars
     log "Docker image saved to $TAR_OUTPUT"
 }
 
