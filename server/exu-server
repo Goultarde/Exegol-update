@@ -2,21 +2,36 @@
 
 # ───────────── CONFIGURATION ─────────────
 
+# Valeurs par défaut
 EXEGOL_PATH='/root/.local/bin/exegol'
 REPO_DIR="/exu/exegol-images"
 REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
 BRANCH="dev"
-BUILD_PROFILE="full" # full=nighlty sur la branche dev
-#Mettre son fork de Exegol-images pour le test
-##REPO_URL="https://github.com/Goultarde/Exegol-images"
-##BRANCH="main"
-##BUILD_PROFILE="light"
+BUILD_PROFILE="full" # full=nightly sur la branche dev
+IMAGE_NAME="server$BUILD_PROFILE"
+
+# Gestion de l'option --debug
+if [[ "$1" == "--debug" ]]; then
+    REPO_URL="https://github.com/Goultarde/Exegol-images"
+    BRANCH="main"
+    BUILD_PROFILE="light"
+    IMAGE_NAME="server$BUILD_PROFILE"
+    echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light."
+fi
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Usage : $0 [--debug] [-h|--help]"
+    echo
+    echo "  --debug      Utilise le dépôt Goultarde, branche main, profil light (mode test)"
+    echo "  -h, --help   Affiche cette aide"
+    exit 0
+fi
+
 TARPATH="/exu/exegol-update-server/exegol-tars"
 TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
 CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
 LOGPATH=/exu/exegol-update-server/log
 LOGFILE="${LOGPATH}/exegol_wrapper.log"
-IMAGE_NAME="free$BUILD_PROFILE"
 mkdir -p $LOGPATH
 mkdir -p $TARPATH
 
@@ -77,6 +92,8 @@ export_image() {
     docker save -o "$TAR_OUTPUT" "nwodtuhs/exegol:$IMAGE_NAME"
     chmod -R o+r $TARPATH
     log "Docker image saved to $TAR_OUTPUT"
+    # Suppression de l'image locale après export
+    docker rmi "nwodtuhs/exegol:$IMAGE_NAME" >/dev/null && log "Image locale nwodtuhs/exegol:$IMAGE_NAME supprimée après export."
 }
 
 # ───────────── RUN WRAPPER ─────────────
