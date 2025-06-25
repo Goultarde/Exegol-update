@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# ────────────── CONFIGURATION ──────────────
+# ───────────── CONFIGURATION ─────────────
 
 SERVER_URL="http://localhost:9000/"
 DEST_DIR="/exu/exegol-update-client"
 DEFAULT_REPO="nwodtuhs/exegol"
-NEW_IMAGE_NAME="FreeNightly"
 
-# ────────────── COULEURS ──────────────
+# ───────────── COULEURS ─────────────
 
 BLUE="\033[1;34m"
 GREEN="\033[1;32m"
@@ -20,24 +19,25 @@ success() { echo -e "${GREEN}[+]${RESET} $1"; }
 error()   { echo -e "${RED}[-]${RESET} $1"; }
 prompt()  { echo -ne "${YELLOW}[?]${RESET} $1"; }
 
-# ────────────── AIDE ──────────────
+# ───────────── AIDE ─────────────
 
 manual() {
     echo -e "${BLUE}[*]${RESET} Utilisation : $0 [options]\n"
     echo -e "${GREEN}DESCRIPTION${RESET}"
     echo -e "  Ce script permet de charger automatiquement des images Docker Exegol au format .tar"
     echo -e "  depuis un serveur HTTP (Nginx) ou un fichier local déjà téléchargé.\n"
+
     echo -e "${GREEN}OPTIONS DISPONIBLES${RESET}"
     echo -e "  ${YELLOW}--list, -l${RESET}           Liste les fichiers .tar disponibles sur le serveur"
     echo -e "  ${YELLOW}--force, -f${RESET}          Force le téléchargement même si le fichier est déjà présent"
     echo -e "  ${YELLOW}--load-only${RESET}          Charge un .tar local sans contact serveur"
-    echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET} Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
+    echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET}        Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
     echo -e "  ${YELLOW}--auto, -a${RESET}           Active un mode automatique"
     echo -e "  ${YELLOW}-h, --help${RESET}           Affiche cette aide"
     exit 0
 }
 
-# ────────────── PARSING ──────────────
+# ───────────── PARSE ARGS ─────────────
 
 LIST_MODE=false
 FORCE_MODE=false
@@ -59,7 +59,7 @@ done
 
 mkdir -p "$DEST_DIR"
 
-# ────────────── MODE LOAD-ONLY ──────────────
+# ───────────── MODE LOAD-ONLY ─────────────
 
 if $LOAD_ONLY_MODE; then
     info "Mode --load-only activé : recherche de fichiers locaux dans $DEST_DIR"
@@ -86,43 +86,59 @@ if $LOAD_ONLY_MODE; then
         exit 1
     fi
 
+    # Vérification d'un tag cible existant
+    if [[ -n "$TAG_NAME" ]]; then
+        [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]] && TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
+        if docker image inspect "$TAG_NAME" &>/dev/null; then
+            if ! $AUTO_MODE; then
+                prompt "Une image $TAG_NAME existe. Supprimer ? (y/N) : "
+                read -r CONFIRM
+            else
+                CONFIRM=Y
+                info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+            fi
+            [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
+                error "Abandon.";
+                exit 1;
+            }
+        fi
+    else
+        ORIG_TAG=$(tar -Oxf "$SELECTED_LOCAL" manifest.json | grep -oP '"RepoTags":\s*\[\s*"\K[^"]+')
+        if docker image inspect "$ORIG_TAG" &>/dev/null; then
+            if ! $AUTO_MODE; then
+                prompt "Image $ORIG_TAG existe. Supprimer ? (y/N) : "
+                read -r CONFIRM
+            else
+                CONFIRM=Y
+                info "Mode auto : suppression de l'image existante ($ORIG_TAG)"
+            fi
+            [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$ORIG_TAG" &>/dev/null && success "Image supprimée : $ORIG_TAG" || {
+                error "Abandon.";
+                exit 1;
+            }
+        fi
+    fi
+
     info "Chargement de $(basename "$SELECTED_LOCAL")..."
     LOAD_OUT=$(docker load -i "$SELECTED_LOCAL" 2>&1) || {
-        error "Échec docker load."; exit 1;
+        error "Échec docker load.";
+        exit 1;
     }
     success "Image Docker chargée."
     echo "$LOAD_OUT"
 
-    LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
-    if [[ -z "$TAG_NAME" ]]; then
-        TAG_NAME="${DEFAULT_REPO}:$NEW_IMAGE_NAME"
-        info "Aucun tag spécifié. Utilisation par défaut : $TAG_NAME"
-    elif [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]]; then
-        TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
-    fi
-
-    if docker image inspect "$TAG_NAME" &>/dev/null; then
-        if ! $AUTO_MODE; then
-            prompt "Image $TAG_NAME existe. Supprimer ? (y/N) : "
-            read -r CONFIRM
-        else
-            CONFIRM=Y
-            info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+    if [[ -n "$TAG_NAME" ]]; then
+        LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
+        if [[ -n "$LOADED_NAME" ]]; then
+            docker tag "$LOADED_NAME" "$TAG_NAME"
+            docker image rm "$LOADED_NAME" &>/dev/null
+            success "Retaggée : $TAG_NAME"
         fi
-        [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
-            error "Abandon."; exit 1;
-        }
-    fi
-
-    if [[ -n "$LOADED_NAME" ]]; then
-        docker tag "$LOADED_NAME" "$TAG_NAME"
-        docker image rm "$LOADED_NAME" &>/dev/null
-        success "Retaggée : $TAG_NAME"
     fi
     exit 0
 fi
 
-# ────────────── MODE SERVEUR ──────────────
+# ───────────── MODE SERVEUR ─────────────
 
 info "Récupération des fichiers .tar depuis le serveur..."
 FILE_LIST=$(curl -s "$SERVER_URL/" | grep -oP 'href="[^"]+\.tar"' | cut -d'"' -f2)
@@ -161,49 +177,69 @@ else
         read -r YES
     else
         YES=Y
-        info "Mode auto : téléchargement automatique."
+        info "Mode auto : téléchargement et chargement automatique."
     fi
     [[ -n "$YES" && ! "$YES" =~ ^[Yy]$ ]] && { info "Téléchargement annulé."; exit 0; }
 
     info "Téléchargement de $TAR_NAME..."
     curl -fSL "$TAR_URL" -o "$LOCAL_PATH" || {
-        error "Échec du téléchargement."; exit 1;
+        error "Échec du téléchargement."
+        exit 1
     }
     success "Téléchargement terminé."
 fi
 
+# ───────────── VALIDATION IMAGE EXISTANTE ─────────────
+
+if [[ -n "$TAG_NAME" ]]; then
+    [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]] && TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
+    if docker image inspect "$TAG_NAME" &>/dev/null; then
+        if ! $AUTO_MODE; then
+            prompt "Image $TAG_NAME existe. Supprimer ? (y/N) : "
+            read -r CONFIRM
+        else
+            CONFIRM=Y
+            info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+        fi
+        [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
+            error "Abandon.";
+            exit 1;
+        }
+    fi
+else
+    ORIG_TAG=$(tar -Oxf "$LOCAL_PATH" manifest.json | grep -oP '"RepoTags":\s*\[\s*"\K[^"]+')
+    if docker image inspect "$ORIG_TAG" &>/dev/null; then
+        if ! $AUTO_MODE; then
+            prompt "Image $ORIG_TAG existe. Supprimer ? (y/N) : "
+            read -r CONFIRM
+        else
+            CONFIRM=Y
+            info "Mode auto : suppression de l'image existante ($ORIG_TAG)"
+        fi
+        [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$ORIG_TAG" &>/dev/null && success "Image supprimée : $ORIG_TAG" || {
+            error "Abandon.";
+            exit 1;
+        }
+    fi
+fi
+
+# ───────────── CHARGEMENT ET RETAG ─────────────
+
 info "Chargement de l'image Docker depuis $TAR_NAME..."
 LOAD_OUT=$(docker load -i "$LOCAL_PATH" 2>&1) || {
-    error "Échec docker load."; exit 1;
+    error "Échec docker load."
+    exit 1
 }
 success "Image Docker chargée."
 echo "$LOAD_OUT"
 
-LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
-if [[ -z "$TAG_NAME" ]]; then
-    TAG_NAME="${DEFAULT_REPO}:$NEW_IMAGE_NAME"
-    info "Aucun tag spécifié. Utilisation par défaut : $TAG_NAME"
-elif [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]]; then
-    TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
-fi
-
-if docker image inspect "$TAG_NAME" &>/dev/null; then
-    if ! $AUTO_MODE; then
-        prompt "Image $TAG_NAME existe. Supprimer ? (y/N) : "
-        read -r CONFIRM
-    else
-        CONFIRM=Y
-        info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+if [[ -n "$TAG_NAME" ]]; then
+    LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
+    if [[ -n "$LOADED_NAME" ]]; then
+        docker tag "$LOADED_NAME" "$TAG_NAME"
+        docker image rm "$LOADED_NAME" &>/dev/null
+        success "Retaggée : $TAG_NAME"
     fi
-    [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
-        error "Abandon."; exit 1;
-    }
-fi
-
-if [[ -n "$LOADED_NAME" ]]; then
-    docker tag "$LOADED_NAME" "$TAG_NAME"
-    docker image rm "$LOADED_NAME" &>/dev/null
-    success "Retaggée : $TAG_NAME"
 fi
 
 if ! $AUTO_MODE; then
@@ -211,7 +247,7 @@ if ! $AUTO_MODE; then
     read -r CONFIRM_DELETE
 else
     CONFIRM_DELETE=N
-    info "Mode auto : le fichier est conservé."
+    info "Mode auto : le fichier est conservé par défaut."
 fi
 [[ "$CONFIRM_DELETE" =~ ^[Yy]$ ]] && rm -f "$LOCAL_PATH" && success "Fichier supprimé." || info "Fichier conservé."
 

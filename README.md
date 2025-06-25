@@ -1,6 +1,7 @@
 # ⚠️ AVERTISSEMENT : Projet en version bêta !
 
-Ce projet est en cours de développement. L'intégration crontab n'a pas encore été testée en profondeur : son comportement peut varier selon les environnements. Utilisez avec précaution en production.
+Ce projet est en cours de développement. 
+- L'intégration crontab n'a pas encore été testée en profondeur : son comportement peut varier selon les environnements. Utilisez avec précaution en production.
 
 # Exegol-update
 
@@ -73,7 +74,7 @@ cd client
 - `--list, -l` : Liste les images disponibles sur le serveur
 - `--force, -f` : Force le téléchargement même si le fichier existe déjà
 - `--load-only` : Charge une image locale sans contacter le serveur
-- `--tag=[nom:tag||tag]` : Re-tag l'image après chargement (formats valides : `nom:tag` ou `tag` seul)
+- `--tag=[nom:tag||tag]` : Re-tag l'image après chargement (formats valides : `nom:tag` ou `tag` seul). Par défaut, le tag est "FreeNightly" (modifiable dans le code).
 - `--auto, -a` : Mode automatique (aucune interaction requise)
 - `-h, --help` : Affiche l'aide détaillée
 
@@ -89,6 +90,11 @@ Le script `exu-server` (présent dans le dossier `server/`) automatise les étap
 - Construction de l'image Docker selon le profil défini
 - Export de l'image au format `.tar` dans le dossier partagé
 - Journalisation des opérations dans un fichier de log
+
+### Options disponibles
+
+- `--debug` : Utilise le dépôt Goultarde, branche main, profil light (mode test)
+- `-h, --help` : Affiche l'aide et quitte le script
 
 Ce script est normalement lancé automatiquement via une tâche cron (voir la section "Déploiement du serveur").
 
