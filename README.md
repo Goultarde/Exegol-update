@@ -11,7 +11,7 @@ Exegol-update est un outil facilitant la gestion, la distribution et le chargeme
 ## Prérequis
 
 - Système Linux avec droits administrateur (root)
-- [Exegol](https://github.com/nwodtuhs/exegol) installé sur le serveur (utilisé pour le build des images)
+- [Exegol](https://github.com/ThePorgs/Exegol) installé sur le serveur (utilisé pour le build des images)
 - [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/) installés
 
 ## Installation
