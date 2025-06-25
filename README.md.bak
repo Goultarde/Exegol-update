@@ -11,7 +11,7 @@ Exegol-update est un outil facilitant la gestion, la distribution et le chargeme
 ## Prérequis
 
 - Système Linux avec droits administrateur (root)
-- [Exegol](https://github.com/ThePorgs/Exegol) installé sur le serveur (utilisé pour le build des images)
+- [Exegol](https://github.com/nwodtuhs/exegol) installé sur le serveur (utilisé pour le build des images)
 - [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/) installés
 
 ## Installation
@@ -25,7 +25,7 @@ sudo pipx install exegol
 ### 2. Cloner ce dépôt
 
 ```bash
-git clone git@github.com:Goultarde/Exegol-update.git
+git clone <repo>
 cd Exegol-update
 ```
 
@@ -82,6 +82,7 @@ cd client
 
 - **Serveur** : Expose les images Docker via Nginx dans un conteneur, avec gestion automatisée par cron.
 - **Client** : Télécharge, charge et re-tag les images Docker de façon interactive ou automatisée.
+
 
 ## Script serveur : exu-server
 
