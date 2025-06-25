@@ -25,7 +25,7 @@ sudo pipx install exegol
 ### 2. Cloner ce dépôt
 
 ```bash
-git clone <repo>
+git clone git@github.com:Goultarde/Exegol-update.git
 cd Exegol-update
 ```
 
