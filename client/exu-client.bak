@@ -1,10 +1,10 @@
+
 #!/bin/bash
 
 # ───────────── CONFIGURATION ─────────────
 
 SERVER_URL="http://localhost:9000/"
 DEST_DIR="/exu/exegol-update-client"
-DEFAULT_REPO="nwodtuhs/exegol"
 
 # ───────────── COULEURS ─────────────
 
@@ -57,7 +57,52 @@ for arg in "$@"; do
     esac
 done
 
+# ───────────── MODE LOAD-ONLY ─────────────
+
 mkdir -p "$DEST_DIR"
+
+if $LOAD_ONLY_MODE; then
+    info "Mode --load-only activé : recherche de fichiers locaux dans $DEST_DIR"
+
+    LOCAL_TARS=$(find "$DEST_DIR" -type f -name '*.tar' | sort)
+    if [ -z "$LOCAL_TARS" ]; then
+        error "Aucun fichier .tar trouvé localement dans $DEST_DIR"
+        exit 1
+    fi
+
+    echo
+    info "Fichiers locaux disponibles :"
+    echo "$LOCAL_TARS" | nl -w2 -s'. '
+
+    prompt "Quel fichier souhaitez-vous charger ? (numéro) : "
+    read -r SELECT_INDEX
+
+    SELECTED_LOCAL=$(echo "$LOCAL_TARS" | sed -n "${SELECT_INDEX}p")
+
+    if [ -z "$SELECTED_LOCAL" ]; then
+        error "Sélection invalide. Abandon."
+        exit 1
+    fi
+
+    info "Chargement de l’image Docker depuis $(basename "$SELECTED_LOCAL")..."
+    LOAD_OUTPUT=$(docker load -i "$SELECTED_LOCAL" 2>&1) || {
+        error "Échec du chargement Docker."
+        exit 1
+    }
+    success "Image Docker chargée avec succès."
+    echo "$LOAD_OUTPUT"
+
+    if [[ -n "$TAG_NAME" ]]; then
+        LOADED_NAME=$(echo "$LOAD_OUTPUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
+        if [[ -z "$LOADED_NAME" ]]; then
+            error "Impossible de déterminer le nom de l’image chargée."
+        else
+            docker tag "$LOADED_NAME" "$TAG_NAME" && success "Image retaggée en : $TAG_NAME"
+            docker image rm "$LOADED_NAME" && success "Image originale supprimée : $LOADED_NAME"
+        fi
+    fi
+    exit 0
+fi
 
 # ───────────── MODE SERVEUR ─────────────
 
@@ -78,6 +123,7 @@ if $LIST_MODE; then
     read -r FILE_NUMBER
 
     SELECTED_TAR=$(echo "$FILE_LIST" | sed -n "${FILE_NUMBER}p")
+
     if [ -z "$SELECTED_TAR" ]; then
         error "Numéro invalide. Aucun fichier sélectionné."
         exit 1
@@ -98,79 +144,45 @@ if [ -f "$LOCAL_PATH" ] && ! $FORCE_MODE; then
     info "Aucun chargement Docker ne sera effectué."
     exit 0
 else
-    prompt "Voulez-vous télécharger puis charger ce fichier ? (Y/n) : "
+    prompt "Voulez-vous télécharger puis charger ce fichier ? (y/N) : "
     read -r CONFIRM_DL
-    if [[ -z "$CONFIRM_DL" || "$CONFIRM_DL" =~ ^[Yy]$ ]]; then
+    if [[ "$CONFIRM_DL" =~ ^[Yy]$ ]]; then
         info "Téléchargement de $TAR_NAME..."
         curl -fSL "$TAR_URL" -o "$LOCAL_PATH" || {
             error "Échec du téléchargement."
             exit 1
         }
         success "Téléchargement terminé."
+
+        info "Chargement de l’image Docker depuis $TAR_NAME..."
+        LOAD_OUTPUT=$(docker load -i "$LOCAL_PATH" 2>&1) || {
+            error "Échec du chargement de l’image."
+            exit 1
+        }
+        success "Image Docker chargée avec succès."
+        echo "$LOAD_OUTPUT"
+
+        if [[ -n "$TAG_NAME" ]]; then
+            LOADED_NAME=$(echo "$LOAD_OUTPUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
+            if [[ -z "$LOADED_NAME" ]]; then
+                error "Impossible de déterminer le nom original de l’image."
+            else
+                docker tag "$LOADED_NAME" "$TAG_NAME" && success "Image retaggée en : $TAG_NAME"
+                docker image rm "$LOADED_NAME" && success "Image originale supprimée : $LOADED_NAME"
+            fi
+        fi
+
+        prompt "Voulez-vous supprimer le fichier $TAR_NAME après chargement ? (y/n) : "
+        read -r CONFIRM_DELETE
+        if [[ "$CONFIRM_DELETE" =~ ^[Yy]$ ]]; then
+            rm -f "$LOCAL_PATH"
+            success "Fichier supprimé."
+        else
+            info "Fichier conservé dans $DEST_DIR/"
+        fi
     else
         info "Téléchargement annulé par l'utilisateur."
         exit 0
     fi
-fi
-
-# ───────────── VALIDATION D’EXISTENCE D’UNE IMAGE DÉJÀ TAGGÉE ─────────────
-
-if [[ -n "$TAG_NAME" ]]; then
-    [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]] && TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
-
-    if docker image inspect "$TAG_NAME" >/dev/null 2>&1; then
-        prompt "Une image avec le tag $TAG_NAME existe déjà. Voulez-vous la supprimer ? (y/N) : "
-        read -r CONFIRM_EXISTING
-        if [[ "$CONFIRM_EXISTING" =~ ^[Yy]$ ]]; then
-            docker image rm "$TAG_NAME" >/dev/null && success "Ancienne image supprimée : $TAG_NAME"
-        else
-            error "Chargement annulé pour éviter d’écraser l’image existante."
-            exit 1
-        fi
-    fi
-else
-    # Extraire tag original du .tar s’il n’est pas fourni
-    EXTRACTED_TAG=$(tar -Oxf "$LOCAL_PATH" manifest.json | grep -oP '"RepoTags":\s*\[\s*"\K[^"]+')
-    if [[ -n "$EXTRACTED_TAG" && $(docker image inspect "$EXTRACTED_TAG" 2>/dev/null) ]]; then
-        prompt "Une image avec le tag $EXTRACTED_TAG existe déjà. Voulez-vous la supprimer ? (y/N) : "
-        read -r CONFIRM_EXISTING
-        if [[ "$CONFIRM_EXISTING" =~ ^[Yy]$ ]]; then
-            docker image rm "$EXTRACTED_TAG" >/dev/null && success "Ancienne image supprimée : $EXTRACTED_TAG"
-        else
-            error "Chargement annulé pour éviter d’écraser l’image existante."
-            exit 1
-        fi
-    fi
-fi
-
-# ───────────── CHARGEMENT DOCKER ─────────────
-
-info "Chargement de l’image Docker depuis $TAR_NAME..."
-LOAD_OUTPUT=$(docker load -i "$LOCAL_PATH" 2>&1) || {
-    error "Échec du chargement de l’image."
-    exit 1
-}
-success "Image Docker chargée avec succès."
-echo "$LOAD_OUTPUT"
-
-# ───────────── RETAG & CLEAN ─────────────
-
-if [[ -n "$TAG_NAME" ]]; then
-    LOADED_NAME=$(echo "$LOAD_OUTPUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
-    if [[ -z "$LOADED_NAME" ]]; then
-        error "Impossible de déterminer le nom de l’image chargée."
-    else
-        docker tag "$LOADED_NAME" "$TAG_NAME" && success "Image retaggée en : $TAG_NAME"
-        docker image rm "$LOADED_NAME" >/dev/null && success "Image originale supprimée : $LOADED_NAME"
-    fi
-fi
-
-prompt "Voulez-vous supprimer le fichier $TAR_NAME après chargement ? (y/N) : "
-read -r CONFIRM_DELETE
-if [[ "$CONFIRM_DELETE" =~ ^[Yy]$ ]]; then
-    rm -f "$LOCAL_PATH"
-    success "Fichier supprimé."
-else
-    info "Fichier conservé dans $DEST_DIR/"
 fi
 
