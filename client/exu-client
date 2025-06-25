@@ -4,7 +4,7 @@
 # ───────────── CONFIGURATION ─────────────
 
 SERVER_URL="http://localhost:9000/"
-DEST_DIR="/opt/exegol-update-client"
+DEST_DIR="/exu/exegol-update-client"
 
 # ───────────── COULEURS ─────────────
 
