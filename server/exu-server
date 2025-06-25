@@ -100,7 +100,7 @@ export_image() {
 
 main() {
     update_repo
-#    detect_changes
+    detect_changes
     build_exegol
     export_image
     log "✅ Exegol update pipeline completed."
