@@ -11,36 +11,47 @@ Exegol-update est un outil facilitant la gestion, la distribution et le chargeme
 
 ## Prérequis
 
-- Système Linux connecter en tant que root (server)
+- Système Linux connecter en tant que root (server) ou avec un sudoers
 - [Exegol](https://github.com/ThePorgs/Exegol) installé sur le serveur (utilisé pour le build des images)
 - [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/) installés
+- pipx
 
 ## Installation
 
 ### 1. Installer Exegol, Docker et Docker Compose(sur le serveur)
 
-
+En tant que root
 ```bash
 sudo su
-apt update -u && apt upgrade -y
-apt install python3-pip python3-venv git -y
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
-pipx install exegol
+pipx install exegol 
+```
+
+
+En tant que sudoers
+```
+sudo usermod -aG docker $USER
+newgrp docker #Pour tester l'executable serveur maintenant, mais la session doit être redémarrer pou appliquer le changement de groupe.
 ```
 
 * Read and accept exegol eula
 ```
-exegol info
+exegol info --accept-eula
 ```
 
 * Installer docker également
 
 ### 2. Cloner ce dépôt
 
+En tant que root
 ```bash
 git clone https://github.com/Goultarde/Exegol-update.git /opt/Exegol-update && cd /opt/Exegol-update
 ```
+
+En tant que sudoers
+```
+sudo git clone git@github.com:Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
+```
+
 
 
 ## Utilisation
@@ -120,3 +131,6 @@ cd server
 
 Cela permet de déclencher la reconstruction et l'export de l'image sans attendre la prochaine exécution planifiée.
 
+
+## Improvement
+- --force sur exu-server et un crontab pour forcer les mise à jour tous les 3 jours indépendament des commit.
