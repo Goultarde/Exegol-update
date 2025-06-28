@@ -49,7 +49,7 @@ git clone https://github.com/Goultarde/Exegol-update.git /opt/Exegol-update && c
 
 En tant que sudoers
 ```
-sudo git clone git@github.com:Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
+sudo git clone https://github.com/Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
 ```
 
 
