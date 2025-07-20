@@ -78,7 +78,7 @@ build_exegol() {
     echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
 
     # Appel automatique avec profil
-    "$EXEGOL_PATH" build $IMAGE_NAME $BUILD_PROFILE --build-path "$REPO_DIR/Dockerfile" || {
+    "$EXEGOL_PATH" build $IMAGE_NAME $BUILD_PROFILE --build-path "$REPO_DIR/" || {
         log "Build failed!"
         exit 1
     }
