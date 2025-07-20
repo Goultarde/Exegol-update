@@ -34,6 +34,7 @@ manual() {
     echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET} Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
     echo -e "  ${YELLOW}--auto, -a${RESET}           Active un mode automatique"
     echo -e "  ${YELLOW}--server=[URL]${RESET}       Change l'URL du serveur (format: http://HOST:PORT)"
+    echo -e "  ${YELLOW}--check-commit${RESET}       Vérifie et affiche s'il y a un nouveau commit disponible"
     echo -e "  ${YELLOW}-h, --help${RESET}           Affiche cette aide"
     exit 0
 }
@@ -44,6 +45,7 @@ LIST_MODE=false
 FORCE_MODE=false
 LOAD_ONLY_MODE=false
 AUTO_MODE=false
+CHECK_COMMIT_MODE=false
 TAG_NAME=""
 CUSTOM_SERVER_URL=""
 
@@ -53,6 +55,7 @@ for arg in "$@"; do
         --force|-f) FORCE_MODE=true ;;
         --load-only) LOAD_ONLY_MODE=true ;;
         --auto|-a) AUTO_MODE=true ;;
+        --check-commit) CHECK_COMMIT_MODE=true ;;
         --tag=*) TAG_NAME="${arg#*=}" ;;
         --server=*) CUSTOM_SERVER_URL="${arg#*=}" ;;
         -h|--help) manual ;;
@@ -76,6 +79,36 @@ if [[ -n "$CUSTOM_SERVER_URL" ]]; then
         error "          --server=http://exegol.example.com:9000"
         exit 1
     fi
+fi
+
+# ────────────── VÉRIFICATION COMMIT ──────────────
+
+if $CHECK_COMMIT_MODE; then
+    info "Vérification des nouveaux commits sur le serveur..."
+    
+    # Récupérer le hash du dernier commit depuis le serveur
+    SERVER_COMMIT_HASH=$(curl -s "$SERVER_URL/latest_commit.hash")
+    
+    if [[ -z "$SERVER_COMMIT_HASH" ]]; then
+        error "Impossible de récupérer le hash du dernier commit depuis le serveur."
+        exit 1
+    fi
+    
+    # Vérifier si on a un fichier de hash local
+    LOCAL_HASH_FILE="$DEST_DIR/latest_commit.hash"
+    if [[ -f "$LOCAL_HASH_FILE" ]]; then
+        LOCAL_COMMIT_HASH=$(cat "$LOCAL_HASH_FILE")
+        
+        if [[ "$SERVER_COMMIT_HASH" = "$LOCAL_COMMIT_HASH" ]]; then
+            echo -e "${RED}[-]${RESET} Pas de nouveau commit"
+        else
+            echo -e "${GREEN}[+]${RESET} Nouveau commit disponible"
+        fi
+    else
+        echo -e "${GREEN}[+]${RESET} Nouveau commit disponible"
+    fi
+    
+    exit 0
 fi
 
 mkdir -p "$DEST_DIR"
@@ -191,6 +224,11 @@ else
         error "Échec du téléchargement."; exit 1;
     }
     success "Téléchargement terminé."
+    
+    # Mettre à jour le hash du commit local
+    curl -s "$SERVER_URL/latest_commit.hash" -o "$DEST_DIR/latest_commit.hash" 2>/dev/null || {
+        info "Impossible de récupérer le hash du commit (non critique)"
+    }
 fi
 
 info "Chargement de l'image Docker depuis $TAR_NAME..."

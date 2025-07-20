@@ -10,22 +10,33 @@ BRANCH="dev"
 BUILD_PROFILE="full" # full=nightly sur la branche dev
 IMAGE_NAME="server$BUILD_PROFILE"
 
-# Gestion de l'option --debug
-if [[ "$1" == "--debug" ]]; then
-    REPO_URL="https://github.com/Goultarde/Exegol-images"
-    BRANCH="main"
-    BUILD_PROFILE="light"
-    IMAGE_NAME="server$BUILD_PROFILE"
-    echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light(-100MB)."
-fi
+# Gestion des options
+FORCE_MODE=false
 
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "Usage : $0 [--debug] [-h|--help]"
-    echo
-    echo "  --debug      Utilise le dépôt Goultarde, branche main, profil light (mode test)"
-    echo "  -h, --help   Affiche cette aide"
-    exit 0
-fi
+for arg in "$@"; do
+    case "$arg" in
+        --debug)
+            REPO_URL="https://github.com/Goultarde/Exegol-images"
+            BRANCH="main"
+            BUILD_PROFILE="light"
+            IMAGE_NAME="server$BUILD_PROFILE"
+            echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light(-100MB)."
+            ;;
+        --force)
+            FORCE_MODE=true
+            echo "[FORCE] Mode force activé : build forcé même sans nouveau commit."
+            ;;
+        -h|--help)
+            echo "Usage : $0 [--debug] [--force] [-h|--help]"
+            echo
+            echo "  --debug      Utilise le dépôt Goultarde, branche main, profil light (mode test)"
+            echo "  --force      Force le build même sans nouveau commit détecté"
+            echo "  -h, --help   Affiche cette aide"
+            exit 0
+            ;;
+        *) ;;
+    esac
+done
 
 TARPATH="/exu/exegol-update-server/exu-tars"
 TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
@@ -60,9 +71,11 @@ detect_changes() {
     LATEST_COMMIT=$(git rev-parse HEAD)
     if [ -f "$CHECKSUM_FILE" ]; then
         PREV_COMMIT=$(cat "$CHECKSUM_FILE")
-        if [ "$LATEST_COMMIT" = "$PREV_COMMIT" ]; then
+        if [ "$LATEST_COMMIT" = "$PREV_COMMIT" ] && [ "$FORCE_MODE" = false ]; then
             log "No updates found on dev branch. Exiting."
             exit 0
+        elif [ "$FORCE_MODE" = true ]; then
+            log "Force mode enabled: building despite no new commits detected."
         fi
     fi
     echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
