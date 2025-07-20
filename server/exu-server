@@ -3,7 +3,7 @@
 # ───────────── CONFIGURATION ─────────────
 
 # Valeurs par défaut
-EXEGOL_PATH='/root/.local/bin/exegol'
+EXEGOL_PATH='exegol'
 REPO_DIR="/exu/exegol-images"
 REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
 BRANCH="dev"
