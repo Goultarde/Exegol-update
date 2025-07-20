@@ -102,6 +102,18 @@ build_exegol() {
 
 export_image() {
     mkdir -p "$(dirname "$TAR_OUTPUT")"
+    
+    # Nettoyage des anciens fichiers .tar avec le même préfixe
+    TAR_PREFIX="exegol-${BUILD_PROFILE}"
+    OLD_TARS=$(find "$TARPATH" -name "${TAR_PREFIX}-*.tar" -type f)
+    if [[ -n "$OLD_TARS" ]]; then
+        log "Nettoyage des anciens fichiers .tar :"
+        echo "$OLD_TARS" | while read -r old_tar; do
+            log "  Suppression : $(basename "$old_tar")"
+            rm -f "$old_tar"
+        done
+    fi
+    
     docker save -o "$TAR_OUTPUT" "nwodtuhs/exegol:$IMAGE_NAME"
     chmod -R o+r $TARPATH
     log "Docker image saved to $TAR_OUTPUT"

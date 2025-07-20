@@ -17,19 +17,28 @@ Exegol-update est un outil facilitant la gestion, la distribution et le chargeme
 
 ## Installation
 
-### 1. Installer Exegol (sur le serveur)
-
+### 1. Installer Cronie, Docker, Docker Compose et ce rajouter dans le groupe docker
 ```bash
-sudo pipx install exegol
+sudo usermod -aG docker $USER
+newgrp docker # temportaire, il vaut mieux redémarer la session
+sudo systemctl enable docker --now
 ```
 
-### 2. Cloner ce dépôt
+### 2. Installer Exegol (sur le serveur)
+
+```bash
+pipx install exegol
+pipx ensurepath
+exec [bash|zsh|...]
+exegol info --accept-eula
+```
+
+### 3. Cloner ce dépôt
 
 ```bash
 git clone https://github.com/Goultarde/Exegol-update.git  && cd Exegol-update
 ```
 
-### 3. Installer Docker et Docker Compose
 
 
 
@@ -85,6 +94,7 @@ Si aucune option n'est fournie, exu-client télécharge et charge automatiquemen
 - `--tag=[nom:tag||tag]` : Re-tag l'image après chargement (formats valides : `nom:tag` ou `tag` seul). Par défaut, le tag est "FreeNightly" (modifiable dans le code).
 - `--auto, -a` : Mode automatique (aucune interaction requise)
 - `--server=[URL]` : Change l'URL du serveur (format : `http://HOST:PORT` ou `https://HOST:PORT`)
+- `--check-commit` : Vérifie et affiche s'il y a un nouveau commit disponible (basé sur le hash Git)
 - `-h, --help` : Affiche l'aide détaillée
 
 #### Exemples d'utilisation
@@ -96,6 +106,10 @@ exu-client
 # Connexion à un serveur distant
 exu-client --server=http://192.168.1.100:9000
 exu-client --server=https://exegol-server.local:8443
+
+# Vérification des nouveaux commits
+exu-client --check-commit
+exu-client --server=http://192.168.1.100:9000 --check-commit
 
 # Combinaison d'options
 exu-client --server=http://exegol.example.com:9000 --auto --force
@@ -118,6 +132,7 @@ Le script `exu-server` (présent dans le dossier `server/`) automatise les étap
 ### Options disponibles
 
 - `--debug` : Utilise le dépôt Goultarde, branche main, profil light (mode test)
+- `--force` : Force le build même sans nouveau commit détecté
 - `-h, --help` : Affiche l'aide et quitte le script
 
 Ce script est normalement lancé automatiquement via une tâche cron (voir la section "Déploiement du serveur").
@@ -130,4 +145,22 @@ cd server
 ```
 
 Cela permet de déclencher la reconstruction et l'export de l'image sans attendre la prochaine exécution planifiée.
+
+### Vérification des nouveaux commits
+
+Le client `exu-client` peut vérifier rapidement s'il y a de nouveaux commits disponibles sans télécharger d'images :
+
+```bash
+exu-client --check-commit
+```
+
+Cette commande :
+- Récupère le hash du dernier commit depuis le serveur (`latest_commit.hash`)
+- Compare avec le hash local stocké
+- Affiche `[+] Nouveau commit disponible` ou `[-] Pas de nouveau commit`
+
+Cette fonctionnalité est utile pour :
+- Vérifier rapidement l'état des mises à jour
+- Automatiser les vérifications dans des scripts
+- Éviter les téléchargements inutiles
 
