@@ -7,6 +7,6 @@ services:
     ports:
       - "9000:80"
     volumes:
-      - /exu/exegol-update-server/exegol-tars:/exu/exegol-update-server/exegol-tars:ro
+      - /exu/exegol-update-server/exu-tars:/exu/exegol-update-server/exu-tars:ro
     restart: unless-stopped
 

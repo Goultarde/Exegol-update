@@ -18,6 +18,25 @@ CRON_ENTRY="0 20 * * 6 $EXEGOL_SCRIPT"
 #| └──────── Heure (0-23)
 #└────────── Minute (0-59)
 
+# ───────────── GESTION DES OPTIONS ─────────────
+
+NOW_MODE=false
+
+# Parsing des arguments
+for arg in "$@"; do
+    case "$arg" in
+        --now) NOW_MODE=true ;;
+        -h|--help) 
+            echo "Usage : $0 [--now] [-h|--help]"
+            echo
+            echo "  --now        Lance exu-server immédiatement après le setup"
+            echo "  -h, --help   Affiche cette aide"
+            exit 0
+            ;;
+        *) ;;
+    esac
+done
+
 # ───────────── COULEURS ─────────────
 BLUE="\033[1;34m"
 GREEN="\033[1;32m"
@@ -32,9 +51,11 @@ prompt()  { echo -e "${YELLOW}[?]${RESET} $1"; }
 
 # ───────────── Préparation des dossiers ─────────────
 
-info "Création des répertoires si besoin..."
-mkdir -p /exu/exegol-update-server/exegol-tars
-mkdir -p /var/log
+# Les dossiers sont déjà créés dans exu-server
+# info "Création des répertoires si besoin..."
+# mkdir -p /exu/exegol-update-server/exu-tars
+# mkdir -p /exu/exegol-update-server/exu-logs
+
 
 # ───────────── Nettoyage Docker précédent ─────────────
 
@@ -64,5 +85,15 @@ fi
 
 rm -f "$CRON_TMP"
 
-success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
+# ───────────── LANCEMENT IMMÉDIAT SI DEMANDÉ ─────────────
+
+if $NOW_MODE; then
+    echo
+    info "Option --now détectée. Lancement immédiat d'exu-server..."
+    success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
+    echo
+    "$EXEGOL_SCRIPT"
+else
+    success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
+fi
 

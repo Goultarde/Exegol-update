@@ -26,15 +26,12 @@ sudo pipx install exegol
 ### 2. Cloner ce dépôt
 
 ```bash
-sudo git clone https://github.com/Goultarde/Exegol-update.git /opt/Exegol-update && sudo chown -R $USER:$USER /opt/Exegol-update && cd /opt/Exegol-update
+git clone https://github.com/Goultarde/Exegol-update.git  && cd Exegol-update
 ```
 
 ### 3. Installer Docker et Docker Compose
 
-```bash
-sudo apt update
-sudo apt install docker docker-compose
-```
+
 
 ## Utilisation
 
@@ -44,7 +41,7 @@ Lancez le script d'initialisation pour préparer l'environnement :
 
 ```bash
 ./exu.sh
-#sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
+#ou : sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
 ```
 
 ### Déploiement du serveur
@@ -53,14 +50,19 @@ Depuis le dossier `./server` :
 
 ```bash
 cd server
-./setup.sh
-#`contrab -e`  pour supprimer le crontab crée.
+./setup.sh [--now] # --now permet de démarer directement un premier build
+# contrab -e :  pour supprimer ou modifier le crontab crée.
 ```
 
 Ce script :
-- Prépare les dossiers nécessaires
+- Prépare les dossiers nécessaires pour stocker les images et les logs.
 - Déploie un serveur Nginx dans un conteneur Docker pour exposer les images `.tar`
 - Ajoute une tâche cron pour automatiser la gestion des images
+
+#### Options disponibles
+
+- `--now` : Lance immédiatement `exu-server` après le setup pour construire et exporter une image (utile pour un premier déploiement)
+- `-h, --help` : Affiche l'aide du script
 
 ### Utilisation du client
 

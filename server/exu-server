@@ -27,10 +27,10 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     exit 0
 fi
 
-TARPATH="/exu/exegol-update-server/exegol-tars"
+TARPATH="/exu/exegol-update-server/exu-tars"
 TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
 CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
-LOGPATH=/exu/exegol-update-server/log
+LOGPATH=/exu/exegol-update-server/exu-logs
 LOGFILE="${LOGPATH}/exu_$(date '+%F %T').log"
 mkdir -p $LOGPATH
 mkdir -p $TARPATH
