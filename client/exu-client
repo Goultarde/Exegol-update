@@ -33,6 +33,7 @@ manual() {
     echo -e "  ${YELLOW}--load-only${RESET}          Charge un .tar local sans contact serveur"
     echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET} Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
     echo -e "  ${YELLOW}--auto, -a${RESET}           Active un mode automatique"
+    echo -e "  ${YELLOW}--server=[URL]${RESET}       Change l'URL du serveur (format: http://HOST:PORT)"
     echo -e "  ${YELLOW}-h, --help${RESET}           Affiche cette aide"
     exit 0
 }
@@ -44,6 +45,7 @@ FORCE_MODE=false
 LOAD_ONLY_MODE=false
 AUTO_MODE=false
 TAG_NAME=""
+CUSTOM_SERVER_URL=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -52,10 +54,29 @@ for arg in "$@"; do
         --load-only) LOAD_ONLY_MODE=true ;;
         --auto|-a) AUTO_MODE=true ;;
         --tag=*) TAG_NAME="${arg#*=}" ;;
+        --server=*) CUSTOM_SERVER_URL="${arg#*=}" ;;
         -h|--help) manual ;;
         *) ;;
     esac
 done
+
+# ────────────── VALIDATION URL SERVEUR ──────────────
+
+if [[ -n "$CUSTOM_SERVER_URL" ]]; then
+    # Validation du format de l'URL (accepte IP et noms de domaine)
+    if [[ "$CUSTOM_SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+:[0-9]+/?$ ]]; then
+        SERVER_URL="$CUSTOM_SERVER_URL"
+        # S'assurer que l'URL se termine par /
+        [[ "$SERVER_URL" != */ ]] && SERVER_URL="${SERVER_URL}/"
+        info "Serveur personnalisé configuré : $SERVER_URL"
+    else
+        error "Format d'URL invalide. Utilisez le format : http://HOST:PORT ou https://HOST:PORT"
+        error "Exemples : --server=http://192.168.1.100:9000"
+        error "          --server=https://exegol-server.local:8443"
+        error "          --server=http://exegol.example.com:9000"
+        exit 1
+    fi
+fi
 
 mkdir -p "$DEST_DIR"
 

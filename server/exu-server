@@ -16,7 +16,7 @@ if [[ "$1" == "--debug" ]]; then
     BRANCH="main"
     BUILD_PROFILE="light"
     IMAGE_NAME="server$BUILD_PROFILE"
-    echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light."
+    echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light(-100MB)."
 fi
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then

@@ -84,7 +84,23 @@ Si aucune option n'est fournie, exu-client télécharge et charge automatiquemen
 - `--load-only` : Charge une image locale sans contacter le serveur
 - `--tag=[nom:tag||tag]` : Re-tag l'image après chargement (formats valides : `nom:tag` ou `tag` seul). Par défaut, le tag est "FreeNightly" (modifiable dans le code).
 - `--auto, -a` : Mode automatique (aucune interaction requise)
+- `--server=[URL]` : Change l'URL du serveur (format : `http://HOST:PORT` ou `https://HOST:PORT`)
 - `-h, --help` : Affiche l'aide détaillée
+
+#### Exemples d'utilisation
+
+```bash
+# Utilisation basique (serveur local par défaut)
+exu-client
+
+# Connexion à un serveur distant
+exu-client --server=http://192.168.1.100:9000
+exu-client --server=https://exegol-server.local:8443
+
+# Combinaison d'options
+exu-client --server=http://exegol.example.com:9000 --auto --force
+exu-client --server=https://exu-prod.internal:8443 --list
+```
 
 ## Architecture
 
