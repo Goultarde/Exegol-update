@@ -33,7 +33,7 @@ manual() {
     echo -e "  ${YELLOW}--load-only${RESET}          Charge un .tar local sans contact serveur"
     echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET} Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
     echo -e "  ${YELLOW}--auto, -a${RESET}           Active un mode automatique"
-    echo -e "  ${YELLOW}--server=[URL]${RESET}       Change l'URL du serveur (format: http://HOST:PORT)"
+    echo -e "  ${YELLOW}--server=[URL]${RESET}       Change l'URL du serveur (format: http://HOST[:PORT])"
     echo -e "  ${YELLOW}--check-commit${RESET}       Vérifie et affiche s'il y a un nouveau commit disponible"
     echo -e "  ${YELLOW}-h, --help${RESET}           Affiche cette aide"
     exit 0
@@ -66,17 +66,30 @@ done
 # ────────────── VALIDATION URL SERVEUR ──────────────
 
 if [[ -n "$CUSTOM_SERVER_URL" ]]; then
-    # Validation du format de l'URL (accepte IP et noms de domaine)
-    if [[ "$CUSTOM_SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+:[0-9]+/?$ ]]; then
+    # Validation du format de l'URL (accepte IP et noms de domaine, port optionnel)
+    if [[ "$CUSTOM_SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+(:[0-9]+)?/?$ ]]; then
         SERVER_URL="$CUSTOM_SERVER_URL"
+        
+        # Ajouter le port par défaut si aucun port n'est spécifié
+        if [[ "$SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+/?$ ]]; then
+            if [[ "$SERVER_URL" =~ ^https:// ]]; then
+                SERVER_URL="${SERVER_URL%?}/:443/"
+                info "Port par défaut ajouté (443)"
+            else
+                SERVER_URL="${SERVER_URL%?}/:80/"
+                info "Port par défaut ajouté (80)"
+            fi
+        fi
+        
         # S'assurer que l'URL se termine par /
         [[ "$SERVER_URL" != */ ]] && SERVER_URL="${SERVER_URL}/"
         info "Serveur personnalisé configuré : $SERVER_URL"
     else
-        error "Format d'URL invalide. Utilisez le format : http://HOST:PORT ou https://HOST:PORT"
+        error "Format d'URL invalide. Utilisez le format : http://HOST[:PORT] ou https://HOST[:PORT]"
         error "Exemples : --server=http://192.168.1.100:9000"
         error "          --server=https://exegol-server.local:8443"
-        error "          --server=http://exegol.example.com:9000"
+        error "          --server=http://exegol.example.com (port 80 par défaut)"
+        error "          --server=https://exegol.example.com (port 443 par défaut)"
         exit 1
     fi
 fi
