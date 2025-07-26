@@ -246,61 +246,206 @@ modify_default_crontab() {
         echo
     fi
     
-    echo -e "${YELLOW}Fréquences disponibles :${RESET}"
-    echo -e "  ${GREEN}1${RESET} - Tous les jours à 20h00"
-    echo -e "  ${GREEN}2${RESET} - Tous les samedis à 20h00 (défaut)"
-    echo -e "  ${GREEN}3${RESET} - Tous les dimanches à 20h00"
-    echo -e "  ${GREEN}4${RESET} - Personnalisée"
-    echo
-    
-    prompt "Votre choix (1-4) : "
-    read -r frequency_choice
-    
-    local new_schedule=""
-    case $frequency_choice in
-        1)
-            new_schedule="0 20 * * *"
-            ;;
-        2)
-            new_schedule="0 20 * * 6"
-            ;;
-        3)
-            new_schedule="0 20 * * 0"
-            ;;
-        4)
-            echo
-            info "Format crontab : minute heure jour_mois mois jour_semaine"
-            info "Exemple : 0 20 * * 6 (tous les samedis à 20h00)"
-            prompt "Entrez votre fréquence : "
-            read -r new_schedule
-            
-            # Valider le format crontab
-            while ! validate_cron_format "$new_schedule"; do
-                error "Format crontab invalide. Veuillez réessayer."
-                prompt "Entrez votre fréquence : "
-                read -r new_schedule
-            done
-            ;;
-        *)
-            error "Choix invalide, utilisation de la fréquence par défaut"
-            new_schedule="0 20 * * 6"
-            ;;
-    esac
-    
-    # Construire la nouvelle ligne CRON_ENTRY
-    local new_cron_line="CRON_ENTRY=\"$new_schedule /usr/local/bin/exu-server --force\""
-    
-    # Modifier le fichier setup.sh
-    if sed -i "s|^CRON_ENTRY=.*|$new_cron_line|" "$setup_file"; then
-        success "Crontab modifié dans setup.sh :"
-        echo -e "${YELLOW}$new_cron_line${RESET}"
+    # Boucle pour relancer le choix si l'utilisateur annule
+    while true; do
+        # Interface visuelle pour choisir la fréquence
+        select_frequency_visual
+        
+        # Construire la nouvelle ligne CRON_ENTRY
+        local new_cron_line="CRON_ENTRY=\"$new_schedule /usr/local/bin/exu-server --force\""
         
         # Afficher la nouvelle tâche cron qui sera créée
         echo
         info "Prochaine tâche cron qui sera créée :"
         echo -e "${YELLOW}$new_schedule /usr/local/bin/exu-server --force${RESET}"
+        echo
+        
+        # Demander confirmation
+        prompt "Voulez-vous appliquer cette configuration ? (y/N) : "
+        read -r confirm_cron
+        
+        if [[ "$confirm_cron" =~ ^[Yy]$ ]]; then
+            # Modifier le fichier setup.sh
+            if sed -i "s|^CRON_ENTRY=.*|$new_cron_line|" "$setup_file"; then
+                success "Crontab modifié dans setup.sh :"
+                echo -e "${YELLOW}$new_cron_line${RESET}"
+            else
+                error "Erreur lors de la modification du fichier setup.sh"
+            fi
+            break
+        else
+            info "Modification annulée, nouvelle configuration..."
+            echo
+            # Continuer la boucle pour relancer le choix
+        fi
+    done
+}
+
+select_frequency_visual() {
+    echo -e "${YELLOW}Choisissez la fréquence de mise à jour :${RESET}"
+    echo
+    
+    echo -e "  ${GREEN}1${RESET} - Mise à jour quotidienne"
+    echo -e "      Tous les jours à une heure choisie"
+    echo
+    echo -e "  ${GREEN}2${RESET} - Mise à jour tous les X jours"
+    echo -e "      Tous les X jours à une heure choisie"
+    echo
+    echo -e "  ${GREEN}3${RESET} - Configuration personnalisée"
+    echo -e "      Choisir le jour et l'heure"
+    echo
+    
+    prompt "Votre choix (1-3) : "
+    read -r frequency_choice
+    
+    case $frequency_choice in
+        1)
+            select_daily_frequency
+            ;;
+        2)
+            select_interval_frequency
+            ;;
+        3)
+            select_custom_frequency
+            ;;
+        *)
+            error "Choix invalide, utilisation de la fréquence par défaut"
+            new_schedule="0 20 * * *"
+            ;;
+    esac
+}
+
+select_daily_frequency() {
+    echo
+    info "Configuration de la mise à jour quotidienne"
+    echo
+    
+    prompt "Entrez l'heure de mise à jour (0-23) : "
+    read -r hour_choice
+    
+    # Validation de l'heure
+    if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
+        new_schedule="0 $hour_choice * * *"
+        
+        echo
+        info "Résumé de votre configuration :"
+        echo -e "${YELLOW}   Mise à jour tous les jours à ${hour_choice}h00${RESET}"
     else
-        error "Erreur lors de la modification du fichier setup.sh"
+        error "Heure invalide, utilisation de 20h00"
+        new_schedule="0 20 * * *"
+        
+        echo
+        info "Résumé de votre configuration :"
+        echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+    fi
+}
+
+select_interval_frequency() {
+    echo
+    info "Configuration de la mise à jour tous les X jours"
+    echo
+    
+    prompt "Entrez le nombre de jours entre chaque mise à jour (1-31) : "
+    read -r day_interval
+    
+    # Validation de l'intervalle
+    if [[ "$day_interval" =~ ^[1-9]$ ]] || [[ "$day_interval" =~ ^1[0-9]$ ]] || [[ "$day_interval" =~ ^2[0-9]$ ]] || [[ "$day_interval" =~ ^3[0-1]$ ]]; then
+        echo
+        prompt "Entrez l'heure de mise à jour (0-23) : "
+        read -r hour_choice
+        
+        # Validation de l'heure
+        if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
+            new_schedule="0 $hour_choice */$day_interval * *"
+            
+            echo
+            info "Résumé de votre configuration :"
+            echo -e "${YELLOW}   Mise à jour tous les ${day_interval} jours à ${hour_choice}h00${RESET}"
+        else
+            error "Heure invalide, utilisation de 20h00"
+            new_schedule="0 20 */$day_interval * *"
+            
+            echo
+            info "Résumé de votre configuration :"
+            echo -e "${YELLOW}   Mise à jour tous les ${day_interval} jours à 20h00${RESET}"
+        fi
+    else
+        error "Intervalle invalide, utilisation de 1 jour"
+        new_schedule="0 20 * * *"
+        
+        echo
+        info "Résumé de votre configuration :"
+        echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+    fi
+}
+
+select_custom_frequency() {
+    echo
+    info "⚙️ Configuration personnalisée"
+    echo
+    
+    # Sélection du jour
+    echo -e "${YELLOW}📅 Choisissez le jour :${RESET}"
+    echo -e "  ${GREEN}1${RESET} - Lundi"
+    echo -e "  ${GREEN}2${RESET} - Mardi"
+    echo -e "  ${GREEN}3${RESET} - Mercredi"
+    echo -e "  ${GREEN}4${RESET} - Jeudi"
+    echo -e "  ${GREEN}5${RESET} - Vendredi"
+    echo -e "  ${GREEN}6${RESET} - Samedi"
+    echo -e "  ${GREEN}7${RESET} - Dimanche"
+    echo -e "  ${GREEN}8${RESET} - Tous les jours"
+    echo
+    
+    prompt "Jour (1-8) : "
+    read -r day_choice
+    
+    local day_schedule=""
+    local day_names=("" "Lundi" "Mardi" "Mercredi" "Jeudi" "Vendredi" "Samedi" "Dimanche")
+    case $day_choice in
+        1) day_schedule="* * 1" ;;
+        2) day_schedule="* * 2" ;;
+        3) day_schedule="* * 3" ;;
+        4) day_schedule="* * 4" ;;
+        5) day_schedule="* * 5" ;;
+        6) day_schedule="* * 6" ;;
+        7) day_schedule="* * 0" ;;
+        8) day_schedule="* * *" ;;
+        *) 
+            error "Choix invalide, utilisation du samedi"
+            day_schedule="* * 6"
+            day_choice=6
+            ;;
+    esac
+    
+    # Sélection de l'heure
+    echo
+    prompt "Entrez l'heure de mise à jour (0-23) : "
+    read -r hour_choice
+    
+    # Validation de l'heure
+    if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
+        local hour_schedule="0 $hour_choice"
+        new_schedule="$hour_schedule $day_schedule"
+        
+        # Afficher un résumé
+        echo
+        info "📋 Résumé de votre configuration :"
+        if [[ "$day_choice" == "8" ]]; then
+            echo -e "${YELLOW}   Mise à jour tous les jours à ${hour_choice}h00${RESET}"
+        else
+            echo -e "${YELLOW}   Mise à jour tous les ${day_names[$day_choice]}s à ${hour_choice}h00${RESET}"
+        fi
+    else
+        error "Heure invalide, utilisation de 20h00"
+        new_schedule="0 20 $day_schedule"
+        
+        echo
+        info "📋 Résumé de votre configuration :"
+        if [[ "$day_choice" == "8" ]]; then
+            echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+        else
+            echo -e "${YELLOW}   Mise à jour tous les ${day_names[$day_choice]}s à 20h00${RESET}"
+        fi
     fi
 }
 
