@@ -121,7 +121,13 @@ if $CHECK_COMMIT_MODE; then
         echo -e "${GREEN}[+]${RESET} Nouveau commit disponible"
     fi
     
-    exit 0
+    # Si on a seulement --check-commit, on s'arrête ici
+    # Sinon on continue pour afficher la liste ou télécharger
+    if [[ "$CHECK_COMMIT_MODE" = true && "$LIST_MODE" = false && "$FORCE_MODE" = false && "$LOAD_ONLY_MODE" = false ]]; then
+        exit 0
+    fi
+    
+    echo
 fi
 
 mkdir -p "$DEST_DIR"

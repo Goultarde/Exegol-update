@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXEGOL_SCRIPT="$SCRIPT_DIR/exu-server"
 CRON_TMP="/tmp/crontab_check.txt"
 CONTAINER_NAME="exegol-nginx"
-CRON_ENTRY="0 20 * * 6 $EXEGOL_SCRIPT --force"
+CRON_ENTRY="0 20 * * * /usr/local/bin/exu-server --force"
 #* * * * * commande
 #| | | | |
 #| | | | └── Jour de la semaine (0-7) (0 ou 7 = dimanche)
@@ -62,6 +62,17 @@ prompt()  { echo -e "${YELLOW}[?]${RESET} $1"; }
 if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
     info "Conteneur $CONTAINER_NAME détecté. Suppression en cours..."
     docker rm -f "$CONTAINER_NAME" && success "Conteneur supprimé : $CONTAINER_NAME"
+fi
+
+# ───────────── Copier exu-server dans /usr/local/bin ─────────────
+
+info "Installation d'exu-server dans /usr/local/bin..."
+if sudo cp "$EXEGOL_SCRIPT" /usr/local/bin/exu-server; then
+    sudo chmod +x /usr/local/bin/exu-server
+    success "exu-server installé dans /usr/local/bin/exu-server"
+else
+    error "Erreur lors de l'installation d'exu-server"
+    exit 1
 fi
 
 # ───────────── Lancer Docker Compose ─────────────

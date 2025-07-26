@@ -47,7 +47,7 @@ if [[ -n "$SERVER_IP" ]]; then
         # Ajouter la nouvelle entrée
         echo "$SERVER_IP exegol.update" | sudo tee -a /etc/hosts > /dev/null
         success "Entrée ajoutée : $SERVER_IP exegol.update"
-        info "Vous pouvez maintenant utiliser : exu-client --server=http://exegol.update:9000"
+        info "Vous pouvez maintenant utiliser : exu-client --server=http://exegol.update:$PORT"
     else
         error "Format d'adresse IP invalide. Utilisez le format : 192.168.1.100"
         exit 1

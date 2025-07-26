@@ -3,7 +3,7 @@
 # ───────────── CONFIGURATION ─────────────
 
 # Valeurs par défaut
-EXEGOL_PATH='exegol'
+EXEGOL_PATH='/usr/local/bin/exegol'
 REPO_DIR="/exu/exegol-images"
 REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
 BRANCH="dev"
@@ -39,7 +39,7 @@ for arg in "$@"; do
 done
 
 TARPATH="/exu/exegol-update-server/exu-tars"
-TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
+TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date_+%Y%m%d).tar"
 CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
 LOGPATH=/exu/exegol-update-server/exu-logs
 LOGFILE="${LOGPATH}/exu_$(date '+%F %T').log"
