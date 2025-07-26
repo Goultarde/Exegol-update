@@ -381,11 +381,11 @@ select_interval_frequency() {
 
 select_custom_frequency() {
     echo
-    info "⚙️ Configuration personnalisée"
+    info "Configuration personnalisée"
     echo
     
     # Sélection du jour
-    echo -e "${YELLOW}📅 Choisissez le jour :${RESET}"
+    echo -e "${YELLOW}Choisissez le jour :${RESET}"
     echo -e "  ${GREEN}1${RESET} - Lundi"
     echo -e "  ${GREEN}2${RESET} - Mardi"
     echo -e "  ${GREEN}3${RESET} - Mercredi"
@@ -429,7 +429,7 @@ select_custom_frequency() {
         
         # Afficher un résumé
         echo
-        info "📋 Résumé de votre configuration :"
+        info "Résumé de votre configuration :"
         if [[ "$day_choice" == "8" ]]; then
             echo -e "${YELLOW}   Mise à jour tous les jours à ${hour_choice}h00${RESET}"
         else
@@ -440,7 +440,7 @@ select_custom_frequency() {
         new_schedule="0 20 $day_schedule"
         
         echo
-        info "📋 Résumé de votre configuration :"
+        info "Résumé de votre configuration :"
         if [[ "$day_choice" == "8" ]]; then
             echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
         else
