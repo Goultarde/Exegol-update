@@ -36,9 +36,10 @@ show_menu() {
     echo -e "  ${GREEN}1${RESET} - Configuration du serveur"
     echo -e "  ${GREEN}2${RESET} - Configuration du client"
     echo -e "  ${GREEN}3${RESET} - Setup et vérification de l'environnement"
-    echo -e "  ${GREEN}4${RESET} - Quitter"
+    echo -e "  ${GREEN}4${RESET} - Build localement (juste le build docker)"
+    echo -e "  ${GREEN}5${RESET} - Quitter"
     echo
-    echo -e "${BLUE}Utilisez les flèches ↑↓ ou les chiffres (1-4) pour naviguer${RESET}"
+    echo -e "${BLUE}Utilisez les flèches ↑↓ ou les chiffres (1-5) pour naviguer${RESET}"
     echo -e "${BLUE}Appuyez sur 'q' pour quitter directement${RESET}"
     echo
 }
@@ -257,7 +258,7 @@ modify_default_crontab() {
         # Afficher la nouvelle tâche cron qui sera créée
         echo
         info "Prochaine tâche cron qui sera créée :"
-        echo -e "${YELLOW}$new_schedule /usr/local/bin/exu-server --force${RESET}"
+        echo -e "${YELLOW}$new_cron_line${RESET}"
         echo
         
         # Demander confirmation
@@ -500,7 +501,7 @@ validate_cron_format() {
 
 main_menu() {
     local current_choice=1
-    local max_choices=4
+    local max_choices=5
     
     while true; do
         show_menu
@@ -510,7 +511,8 @@ main_menu() {
             1) echo -e "  ${GREEN}▶ 1${RESET} - Configuration du serveur" ;;
             2) echo -e "  ${GREEN}▶ 2${RESET} - Configuration du client" ;;
             3) echo -e "  ${GREEN}▶ 3${RESET} - Setup et vérification de l'environnement" ;;
-            4) echo -e "  ${GREEN}▶ 4${RESET} - Quitter" ;;
+            4) echo -e "  ${GREEN}▶ 4${RESET} - Build localement (juste le build docker)" ;;
+            5) echo -e "  ${GREEN}▶ 5${RESET} - Quitter" ;;
         esac
         
         echo
@@ -534,7 +536,7 @@ main_menu() {
                     current_choice=1
                 fi
                 ;;
-            "1"|"2"|"3"|"4")
+            "1"|"2"|"3"|"4"|"5")
                 current_choice=$key
                 ;;
             "q"|"Q")
@@ -554,6 +556,9 @@ main_menu() {
                         check_environment
                         ;;
                     4)
+                        build_local_only
+                        ;;
+                    5)
                         clear_screen
                         info "Au revoir !"
                         exit 0
@@ -565,6 +570,46 @@ main_menu() {
                 ;;
         esac
     done
+}
+
+# ────────────── BUILD LOCAL ──────────────
+
+build_local_only() {
+    clear_screen
+    info "Build local Exegol (juste le build docker, pas d'export tar)"
+    echo
+    
+    # Vérifier que le script existe
+    if [[ ! -f "$SERVER_DIR/exu-server" ]]; then
+        error "Script exu-server non trouvé dans $SERVER_DIR"
+        prompt "Appuyez sur Entrée pour continuer..."
+        read -r
+        return 1
+    fi
+    
+    # S'assurer que les dossiers nécessaires existent
+    info "Préparation des dossiers..."
+    sudo mkdir -p /exu/exegol-update-server/exu-tars
+    sudo mkdir -p /exu/exegol-update-server/exu-logs
+    sudo chown -R $USER:$USER /exu/exegol-update-server
+    sudo chmod 755 /exu/exegol-update-server/exu-tars
+    sudo chmod 755 /exu/exegol-update-server/exu-logs
+    
+    # Demander si on veut forcer le build (par défaut oui)
+    prompt "Forcer le build même si pas de nouveau commit ? (Y/n) : "
+    read -r force_build
+    local force_flag="--force"
+    if [[ "$force_build" =~ ^[Nn]$ ]]; then
+        force_flag=""
+    fi
+    
+    # Lancer le build
+    cd "$SERVER_DIR" && ./exu-server --build-only $force_flag
+    
+    echo
+    success "Build local terminé !"
+    prompt "Appuyez sur Entrée pour continuer..."
+    read -r
 }
 
 # ────────────── POINT D'ENTRÉE ──────────────

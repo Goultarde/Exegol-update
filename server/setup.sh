@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXEGOL_SCRIPT="$SCRIPT_DIR/exu-server"
 CRON_TMP="/tmp/crontab_check.txt"
 CONTAINER_NAME="exegol-nginx"
-CRON_ENTRY="0 1 * * * /usr/local/bin/exu-server --force"
+CRON_ENTRY="0 0 * * * /usr/local/bin/exu-server --force"
 #* * * * * commande
 #| | | | |
 #| | | | └── Jour de la semaine (0-7) (0 ou 7 = dimanche)

@@ -12,6 +12,7 @@ IMAGE_NAME="server$BUILD_PROFILE"
 
 # Gestion des options
 FORCE_MODE=false
+BUILD_ONLY_MODE=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -26,11 +27,15 @@ for arg in "$@"; do
             FORCE_MODE=true
             echo "[FORCE] Mode force activé : build forcé même sans nouveau commit."
             ;;
+        --build-only)
+            BUILD_ONLY_MODE=true
+            ;;
         -h|--help)
-            echo "Usage : $0 [--debug] [--force] [-h|--help]"
+            echo "Usage : $0 [--debug] [--force] [--build-only] [-h|--help]"
             echo
             echo "  --debug      Utilise le dépôt Goultarde, branche main, profil light (mode test)"
             echo "  --force      Force le build même sans nouveau commit détecté"
+            echo "  --build-only Build uniquement, sans export tar ni suppression d'image/container"
             echo "  -h, --help   Affiche cette aide"
             exit 0
             ;;
@@ -39,12 +44,16 @@ for arg in "$@"; do
 done
 
 TARPATH="/exu/exegol-update-server/exu-tars"
-TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date_+%Y%m%d).tar"
+TAR_OUTPUT="${TARPATH}/exegol-${BUILD_PROFILE}-$(date +%Y%m%d).tar"
 CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
 LOGPATH=/exu/exegol-update-server/exu-logs
-LOGFILE="${LOGPATH}/exu_$(date '+%F %T').log"
-mkdir -p $LOGPATH
-mkdir -p $TARPATH
+LOGFILE="${LOGPATH}/exu_$(date '+%F_%T').log"
+
+# Créer les dossiers avec les bonnes permissions
+mkdir -p "$LOGPATH"
+mkdir -p "$TARPATH"
+chmod 755 "$LOGPATH"
+chmod 755 "$TARPATH"
 
 # ───────────── LOGGER ─────────────
 
@@ -90,6 +99,10 @@ build_exegol() {
     mkdir -p "$(dirname "$CHECKSUM_FILE")"
     echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
 
+    # Créer le fichier de log s'il n'existe pas
+    touch "$LOGFILE"
+    chmod 644 "$LOGFILE"
+
     # Appel automatique avec profil
     "$EXEGOL_PATH" build $IMAGE_NAME $BUILD_PROFILE --build-path "$REPO_DIR/" --build-log "$LOGFILE" || {
         log "Build failed!"
@@ -127,7 +140,9 @@ main() {
     update_repo
     detect_changes
     build_exegol
-    export_image
+    if [ "$BUILD_ONLY_MODE" = false ]; then
+        export_image
+    fi
     log "✅ Exegol update pipeline completed."
 }
 
