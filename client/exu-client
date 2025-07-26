@@ -2,7 +2,7 @@
 
 # ────────────── CONFIGURATION ──────────────
 
-SERVER_URL="http://localhost:9000/"
+SERVER_URL="http://exegol.update"
 DEST_DIR="/exu/exegol-update-client"
 DEFAULT_REPO="nwodtuhs/exegol"
 NEW_IMAGE_NAME="FreeNightly"
@@ -248,8 +248,8 @@ info "Chargement de l'image Docker depuis $TAR_NAME..."
 LOAD_OUT=$(docker load -i "$LOCAL_PATH" 2>&1) || {
     error "Échec docker load."; exit 1;
 }
-success "Image Docker chargée."
 echo "$LOAD_OUT"
+success "Image Docker chargée."
 
 LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
 if [[ -z "$TAG_NAME" ]]; then

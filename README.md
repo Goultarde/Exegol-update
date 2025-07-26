@@ -1,8 +1,6 @@
 # ⚠️ AVERTISSEMENT : Projet en version bêta !
 
 Ce projet est en cours de développement. 
-- L'intégration crontab n'a pas encore été testée en profondeur. Utilisez avec précaution.
-
 # Exegol-update
 
 ## Présentation
@@ -50,7 +48,6 @@ Lancez le script d'initialisation pour préparer l'environnement :
 
 ```bash
 ./exu.sh
-#ou : sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
 ```
 
 ### Déploiement du serveur
