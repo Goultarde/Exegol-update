@@ -603,8 +603,54 @@ build_local_only() {
         force_flag=""
     fi
     
+    # Demander le nom de l'image finale
+    echo
+    prompt "Nom de l'image finale (ex: myexegol:latest ou laisser vide pour défaut) : "
+    read -r custom_image_name
+    
     # Lancer le build
     cd "$SERVER_DIR" && ./exu-server --build-only $force_flag
+    
+    # Si un nom personnalisé a été fourni, retagger l'image
+    if [[ -n "$custom_image_name" ]]; then
+        echo
+        info "Retag de l'image avec le nom personnalisé..."
+        
+        # Construire le nom complet si nécessaire
+        if [[ "$custom_image_name" != */* && "$custom_image_name" != *:* ]]; then
+            custom_image_name="nwodtuhs/exegol:${custom_image_name}"
+        fi
+        
+        # Trouver l'image buildée (généralement serverfull ou serverlight)
+        local built_image=""
+        if docker images | grep -q "nwodtuhs/exegol:serverfull"; then
+            built_image="nwodtuhs/exegol:serverfull"
+        elif docker images | grep -q "nwodtuhs/exegol:serverlight"; then
+            built_image="nwodtuhs/exegol:serverlight"
+        fi
+        
+        if [[ -n "$built_image" ]]; then
+            # Vérifier si l'image de destination existe déjà
+            if docker image inspect "$custom_image_name" &>/dev/null; then
+                prompt "Image $custom_image_name existe déjà. La remplacer ? (y/N) : "
+                read -r replace_image
+                if [[ "$replace_image" =~ ^[Yy]$ ]]; then
+                    docker image rm "$custom_image_name" &>/dev/null
+                    success "Ancienne image supprimée : $custom_image_name"
+                else
+                    info "Retag annulé."
+                    custom_image_name=""
+                fi
+            fi
+            
+            if [[ -n "$custom_image_name" ]]; then
+                docker tag "$built_image" "$custom_image_name"
+                success "Image retaggée : $custom_image_name"
+            fi
+        else
+            error "Impossible de trouver l'image buildée pour le retag"
+        fi
+    fi
     
     echo
     success "Build local terminé !"
