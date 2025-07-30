@@ -1,8 +1,6 @@
 # ⚠️ AVERTISSEMENT : Projet en version bêta !
 
 Ce projet est en cours de développement. 
-- L'intégration crontab n'a pas encore été testée en profondeur. Utilisez avec précaution.
-
 # Exegol-update
 
 ## Présentation
@@ -30,7 +28,6 @@ sudo systemctl enable docker --now
 pipx install exegol
 pipx ensurepath
 exec [bash|zsh|...]
-exegol info --accept-eula
 ```
 
 ### 3. Cloner ce dépôt
@@ -44,45 +41,78 @@ git clone https://github.com/Goultarde/Exegol-update.git  && cd Exegol-update
 
 ## Utilisation
 
-### Initialisation des dossiers
+### Interface TUI de configuration
 
-Lancez le script d'initialisation pour préparer l'environnement :
+Exegol-update dispose d'une interface TUI (Terminal User Interface) pour simplifier la configuration :
 
 ```bash
 ./exu.sh
-#ou : sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
 ```
 
-### Déploiement du serveur
+Cette interface vous permet de :
 
-Depuis le dossier `./server` :
+#### **Menu principal**
+```
+╔══════════════════════════════════════════════════════════════╗
+║                    EXEGOL-UPDATE SETUP                       ║
+╚══════════════════════════════════════════════════════════════╝
 
-```bash
-cd server
-./setup.sh [--now] # --now permet de démarer directement un premier build
-# contrab -e :  pour supprimer ou modifier le crontab crée.
+Choisissez une option :
+
+  1 - Configuration du serveur
+  2 - Configuration du client
+  3 - Setup et vérification de l'environnement
+  4 - Quitter
+
+Utilisez les flèches ↑↓ ou les chiffres (1-4) pour naviguer
+Appuyez sur 'q' pour quitter directement
 ```
 
-Ce script :
-- Prépare les dossiers nécessaires pour stocker les images et les logs.
-- Déploie un serveur Nginx dans un conteneur Docker pour exposer les images `.tar`
-- Ajoute une tâche cron pour automatiser la gestion des images
+#### **Options disponibles**
 
-#### Options disponibles
+- **1 - Configuration du serveur** : Lance `server/setup.sh` avec option de build immédiat
+- **2 - Configuration du client** : Lance `client/initial_setup.sh` pour configurer le client
+- **3 - Setup et vérification de l'environnement** : Vérifie et configure automatiquement l'environnement
+- **4 - Quitter** : Sortie propre de l'interface
 
-- `--now` : Lance immédiatement `exu-server` après le setup pour construire et exporter une image (utile pour un premier déploiement)
-- `-h, --help` : Affiche l'aide du script
+#### **Navigation**
+- **Flèches ↑↓** : Naviguer dans le menu
+- **Chiffres 1-4** : Sélection directe
+- **Entrée** : Confirmer la sélection
+- **q** : Quitter rapidement
+
+### Configuration automatique de l'environnement
+
+L'option 3 (Setup et vérification de l'environnement) effectue automatiquement :
+
+- ✅ Vérification d'Exegol, Docker et Docker Compose
+- ✅ Création du dossier `/exu` avec les bonnes permissions
+- ✅ Création du lien symbolique vers exegol dans `/usr/local/bin/`
+- ✅ Acceptation automatique de l'EULA d'Exegol
+- ✅ Vérification des dossiers serveur/client
+
+### Fonctionnement du déploiement du serveur
+
+Le déploiement du serveur se fait via l'interface TUI (option 1) qui lance automatiquement :
+
+- Préparation des dossiers nécessaires pour stocker les images et les logs
+- Déploiement d'un serveur Nginx dans un conteneur Docker pour exposer les images `.tar`
+- Ajout d'une tâche cron pour automatiser la gestion des images
+- Option de build immédiat pour un premier déploiement
 
 ### Utilisation du client
 
-Depuis le dossier `client/` :
+#### **Configuration automatique**
+La configuration du client se fait via l'interface TUI (option 2) qui :
 
+- Installe `exu-client` dans `/usr/local/bin/` (accessible globalement)
+- Configure automatiquement le fichier `/etc/hosts` avec l'IP du serveur
+- Crée l'entrée `exegol.update` pour faciliter la connexion
+
+#### **Utilisation du client**
 ```bash
-cd client
-./initial_setup.sh
 exu-client [options]
 ```
-`initial_setup.sh` = rend l'executable exu-client global.
 
 Si aucune option n'est fournie, exu-client télécharge et charge automatiquement la dernière image .tar disponible sur le serveur, sauf si elle est déjà présente localement. Une confirmation sera demandée avant chaque action importante, sauf si les mode --auto et ou --force sont activé.
 
@@ -107,12 +137,15 @@ exu-client
 exu-client --server=http://192.168.1.100:9000
 exu-client --server=https://exegol-server.local:8443
 
+# Utilisation avec nom de domaine configuré
+exu-client --server=http://exegol.update:9000
+
 # Vérification des nouveaux commits
 exu-client --check-commit
 exu-client --server=http://192.168.1.100:9000 --check-commit
 
 # Combinaison d'options
-exu-client --server=http://exegol.example.com:9000 --auto --force
+exu-client --server=http://exegol.example.com:9000 --auto --force --tag=Nightly
 exu-client --server=https://exu-prod.internal:8443 --list
 ```
 
@@ -135,13 +168,20 @@ Le script `exu-server` (présent dans le dossier `server/`) automatise les étap
 - `--force` : Force le build même sans nouveau commit détecté
 - `-h, --help` : Affiche l'aide et quitte le script
 
+### Nettoyage automatique
+
+Le script `exu-server` nettoie automatiquement les anciens fichiers `.tar` :
+- Supprime tous les fichiers `.tar` avec le même préfixe avant de créer le nouveau
+- Évite l'accumulation de fichiers anciens
+- Garde seulement le fichier le plus récent par profil
+
 Ce script est normalement lancé automatiquement via une tâche cron (voir la section "Déploiement du serveur").
 
 **Il peut également être exécuté manuellement à tout moment pour forcer une mise à jour immédiate :**
 
 ```bash
 cd server
-./exu-server
+./exu-server [--force] [--debug]
 ```
 
 Cela permet de déclencher la reconstruction et l'export de l'image sans attendre la prochaine exécution planifiée.
@@ -163,4 +203,26 @@ Cette fonctionnalité est utile pour :
 - Vérifier rapidement l'état des mises à jour
 - Automatiser les vérifications dans des scripts
 - Éviter les téléchargements inutiles
+
+## Fonctionnalités avancées
+
+### Gestion des ports par défaut
+
+Le client `exu-client` supporte les URLs sans port spécifié :
+- **HTTP** : Port 80 par défaut
+- **HTTPS** : Port 443 par défaut
+
+```bash
+# Ces commandes sont équivalentes
+exu-client --server=http://exegol.example.com:80
+exu-client --server=http://exegol.example.com
+
+# Ces commandes sont équivalentes
+exu-client --server=https://exegol.example.com:443
+exu-client --server=https://exegol.example.com
+```
+
+### Synchronisation automatique des hashes
+
+Le client met automatiquement à jour son fichier `latest_commit.hash` local après chaque téléchargement réussi, garantissant des vérifications de commits précises lors des prochaines utilisations.
 
