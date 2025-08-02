@@ -103,7 +103,7 @@ if $NOW_MODE; then
     info "Option --now détectée. Lancement immédiat d'exu-server..."
     success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
     echo
-    "$EXEGOL_SCRIPT"
+    "$EXEGOL_SCRIPT" --force
 else
     success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
 fi
