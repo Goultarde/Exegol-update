@@ -137,6 +137,7 @@ export_image() {
 # ───────────── RUN WRAPPER ─────────────
 
 main() {
+    pipx upgrade exegol -f
     update_repo
     detect_changes
     build_exegol
