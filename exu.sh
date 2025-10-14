@@ -74,12 +74,14 @@ check_environment() {
     info "Setup et vérification de l'environnement..."
     echo
     
+    local errors_found=0
+    
     # Vérifier Exegol
     if command -v exegol &> /dev/null; then
         success "Exegol trouvé : $(which exegol)"
     else
         error "Exegol non trouvé dans le PATH"
-        return 1
+        ((errors_found++))
     fi
     
     # Vérifier Docker
@@ -87,15 +89,33 @@ check_environment() {
         success "Docker trouvé : $(which docker)"
     else
         error "Docker non trouvé dans le PATH"
-        return 1
+        ((errors_found++))
     fi
     
     # Vérifier Docker Compose
-    if command -v docker-compose &> /dev/null || docker compose version &> /dev/null; then
-        success "Docker Compose disponible"
-    else
-        error "Docker Compose non trouvé"
-        return 1
+    local docker_compose_available=false
+    local docker_compose_version=""
+    
+    if command -v docker-compose &> /dev/null; then
+        docker_compose_version=$(docker-compose --version 2>/dev/null)
+        if [[ $? -eq 0 ]]; then
+            success "Docker Compose v1 trouvé : $docker_compose_version"
+            docker_compose_available=true
+        fi
+    fi
+    
+    if [[ "$docker_compose_available" == "false" ]] && command -v docker &> /dev/null; then
+        docker_compose_version=$(docker compose version 2>/dev/null)
+        if [[ $? -eq 0 ]]; then
+            success "Docker Compose v2 trouvé : $docker_compose_version"
+            docker_compose_available=true
+        fi
+    fi
+    
+    if [[ "$docker_compose_available" == "false" ]]; then
+        error "Docker Compose non trouvé ou non fonctionnel"
+        error "Vérifiez que docker-compose (v1) ou 'docker compose' (v2) est installé et fonctionnel"
+        ((errors_found++))
     fi
     
     # Vérifier les dossiers
@@ -103,14 +123,14 @@ check_environment() {
         success "Dossier serveur trouvé : $SERVER_DIR"
     else
         error "Dossier serveur manquant : $SERVER_DIR"
-        return 1
+        ((errors_found++))
     fi
     
     if [[ -d "$CLIENT_DIR" ]]; then
         success "Dossier client trouvé : $CLIENT_DIR"
     else
         error "Dossier client manquant : $CLIENT_DIR"
-        return 1
+        ((errors_found++))
     fi
     
     # Créer le dossier /exu
@@ -160,7 +180,16 @@ check_environment() {
     fi
     
     echo
-    success "Vérification terminée !"
+    if [[ $errors_found -eq 0 ]]; then
+        success "Vérification terminée avec succès !"
+    else
+        error "Vérification terminée avec $errors_found erreur(s)"
+        echo
+        info "Résumé des problèmes détectés :"
+        echo "  - Vérifiez que tous les outils requis sont installés"
+        echo "  - Vérifiez que vous avez les droits sudo si nécessaire"
+        echo "  - Vérifiez que les dossiers du projet existent"
+    fi
     echo
     prompt "Appuyez sur Entrée pour continuer..."
     read -r
