@@ -234,12 +234,23 @@ setup_server() {
         read -r custom_profile
     fi
 
+    prompt "Do you want to change the Git branch (e.g., dev(default), main)? (y/N): "
+    read -r change_branch
+    local custom_branch=""
+    if [[ "$change_branch" =~ ^[Yy]$ ]]; then
+        prompt "Enter branch name: "
+        read -r custom_branch
+    fi
+
     local setup_flags=()
     if [[ -n "$custom_repo" ]]; then
         setup_flags+=(--repo "$custom_repo")
     fi
     if [[ -n "$custom_profile" ]]; then
         setup_flags+=(--profile "$custom_profile")
+    fi
+    if [[ -n "$custom_branch" ]]; then
+        setup_flags+=(--branch "$custom_branch")
     fi
     
     prompt "Do you want to run the build immediately after setup? (y/N): "

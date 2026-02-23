@@ -23,6 +23,7 @@ CRON_ENTRY="0 0 * * * /usr/local/bin/exu-server --force"
 NOW_MODE=false
 REPO_URL=""
 BUILD_PROFILE=""
+BRANCH_NAME=""
 UNINSTALL_MODE=false
 
 # Argument parsing
@@ -32,13 +33,15 @@ while [[ "$#" -gt 0 ]]; do
         --uninstall) UNINSTALL_MODE=true; shift ;;
         --repo) REPO_URL="$2"; shift 2 ;;
         --profile) BUILD_PROFILE="$2"; shift 2 ;;
+        --branch) BRANCH_NAME="$2"; shift 2 ;;
         -h|--help) 
-            echo "Usage : $0 [--now] [--uninstall] [--repo <url>] [--profile <name>] [-h|--help]"
+            echo "Usage : $0 [--now] [--uninstall] [--repo <url>] [--profile <name>] [--branch <name>] [-h|--help]"
             echo
             echo "  --now        Run exu-server immediately after setup"
             echo "  --uninstall  Remove server configuration (Docker, crontab, binary)"
             echo "  --repo       Custom image repository URL (Repo)"
             echo "  --profile    Image profile name (e.g., light, full)"
+            echo "  --branch     Custom Git branch (e.g., main, dev)"
             echo "  -h, --help   Displays this help"
             exit 0
             ;;
@@ -124,6 +127,10 @@ if sudo cp "$EXEGOL_SCRIPT" /usr/local/bin/exu-server; then
         info "Updating custom Profile..."
         sudo sed -i "s|^BUILD_PROFILE=.*|BUILD_PROFILE=\"$BUILD_PROFILE\"|" /usr/local/bin/exu-server
         sudo sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=\"server\$BUILD_PROFILE\"|" /usr/local/bin/exu-server
+    fi
+    if [[ -n "$BRANCH_NAME" ]]; then
+        info "Updating custom Branch..."
+        sudo sed -i "s|^BRANCH=.*|BRANCH=\"$BRANCH_NAME\"|" /usr/local/bin/exu-server
     fi
 
     sudo chmod +x /usr/local/bin/exu-server
