@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/server"
 CLIENT_DIR="$SCRIPT_DIR/client"
 
-# ────────────── COULEURS ──────────────
+# ────────────── COLORS ──────────────
 
 BLUE="\033[1;34m"
 GREEN="\033[1;32m"
@@ -19,7 +19,7 @@ success() { echo -e "${GREEN}[+]${RESET} $1"; }
 error()   { echo -e "${RED}[-]${RESET} $1"; }
 prompt()  { echo -ne "${YELLOW}[?]${RESET} $1"; }
 
-# ────────────── FONCTIONS UTILITAIRES ──────────────
+# ────────────── UTILITY FUNCTIONS ──────────────
 
 clear_screen() {
     clear
@@ -31,20 +31,21 @@ clear_screen() {
 
 show_menu() {
     clear_screen
-    echo -e "${YELLOW}Choisissez une option :${RESET}"
+    echo -e "${YELLOW}Choose an option:${RESET}"
     echo
-    echo -e "  ${GREEN}1${RESET} - Configuration du serveur"
-    echo -e "  ${GREEN}2${RESET} - Configuration du client"
-    echo -e "  ${GREEN}3${RESET} - Setup et vérification de l'environnement"
-    echo -e "  ${GREEN}4${RESET} - Build localement (juste le build docker)"
-    echo -e "  ${GREEN}5${RESET} - Quitter"
+    echo -e "  ${GREEN}1${RESET} - Setup and check environment"
+    echo -e "  ${GREEN}2${RESET} - Server configuration"
+    echo -e "  ${GREEN}3${RESET} - Client configuration"
+    echo -e "  ${GREEN}4${RESET} - Build locally (Docker build only)"
+    echo -e "  ${GREEN}5${RESET} - Uninstall server configuration"
+    echo -e "  ${GREEN}6${RESET} - Exit"
     echo
-    echo -e "${BLUE}Utilisez les flèches ↑↓ ou les chiffres (1-5) pour naviguer${RESET}"
-    echo -e "${BLUE}Appuyez sur 'q' pour quitter directement${RESET}"
+    echo -e "${BLUE}Use ↑↓ arrows or numbers (1-6) to navigate${RESET}"
+    echo -e "${BLUE}Press 'q' to quit directly${RESET}"
     echo
 }
 
-# ────────────── CAPTURE DES TOUCHES ──────────────
+# ────────────── KEY COMMAND CAPTURE ──────────────
 
 read_key() {
     local key
@@ -67,39 +68,39 @@ read_key() {
     fi
 }
 
-# ────────────── VÉRIFICATION ENVIRONNEMENT ──────────────
+# ────────────── ENVIRONMENT CHECK ──────────────
 
 check_environment() {
     clear_screen
-    info "Setup et vérification de l'environnement..."
+    info "Setting up and checking environment..."
     echo
     
     local errors_found=0
     
-    # Vérifier Exegol
+    # Check Exegol
     if command -v exegol &> /dev/null; then
-        success "Exegol trouvé : $(which exegol)"
+        success "Exegol found: $(which exegol)"
     else
-        error "Exegol non trouvé dans le PATH"
+        error "Exegol not found in PATH"
         ((errors_found++))
     fi
     
-    # Vérifier Docker
+    # Check Docker
     if command -v docker &> /dev/null; then
-        success "Docker trouvé : $(which docker)"
+        success "Docker found: $(which docker)"
     else
-        error "Docker non trouvé dans le PATH"
+        error "Docker not found in PATH"
         ((errors_found++))
     fi
     
-    # Vérifier Docker Compose
+    # Check Docker Compose
     local docker_compose_available=false
     local docker_compose_version=""
     
     if command -v docker-compose &> /dev/null; then
         docker_compose_version=$(docker-compose --version 2>/dev/null)
         if [[ $? -eq 0 ]]; then
-            success "Docker Compose v1 trouvé : $docker_compose_version"
+            success "Docker Compose v1 found: $docker_compose_version"
             docker_compose_available=true
         fi
     fi
@@ -107,225 +108,272 @@ check_environment() {
     if [[ "$docker_compose_available" == "false" ]] && command -v docker &> /dev/null; then
         docker_compose_version=$(docker compose version 2>/dev/null)
         if [[ $? -eq 0 ]]; then
-            success "Docker Compose v2 trouvé : $docker_compose_version"
+            success "Docker Compose v2 found: $docker_compose_version"
             docker_compose_available=true
         fi
     fi
     
     if [[ "$docker_compose_available" == "false" ]]; then
-        error "Docker Compose non trouvé ou non fonctionnel"
-        error "Vérifiez que docker-compose (v1) ou 'docker compose' (v2) est installé et fonctionnel"
+        error "Docker Compose not found or not working"
+        error "Please ensure that docker-compose (v1) or 'docker compose' (v2) is installed and functional"
         ((errors_found++))
     fi
     
-    # Vérifier les dossiers
+    # Check directories
     if [[ -d "$SERVER_DIR" ]]; then
-        success "Dossier serveur trouvé : $SERVER_DIR"
+        success "Server directory found: $SERVER_DIR"
     else
-        error "Dossier serveur manquant : $SERVER_DIR"
+        error "Missing server directory: $SERVER_DIR"
         ((errors_found++))
     fi
     
     if [[ -d "$CLIENT_DIR" ]]; then
-        success "Dossier client trouvé : $CLIENT_DIR"
+        success "Client directory found: $CLIENT_DIR"
     else
-        error "Dossier client manquant : $CLIENT_DIR"
+        error "Missing client directory: $CLIENT_DIR"
         ((errors_found++))
     fi
     
-    # Créer le dossier /exu
+    # Create /exu directory
     if [[ ! -d "/exu" ]]; then
-        info "Création du dossier /exu..."
+        info "Creating /exu directory..."
         sudo mkdir -p /exu && sudo chown -R $USER:$USER /exu
-        success "Dossier /exu créé"
+        success "Directory /exu created"
     else
-        success "Dossier /exu existe déjà"
+        success "Directory /exu already exists"
     fi
     
-    # Créer le lien symbolique vers exegol
+    # Create symlink to exegol
     EXEGOL_PATH=$(which exegol)
     
-    # Vérifier si exegol est déjà directement dans /usr/local/bin/
+    # Check if exegol is already in /usr/local/bin/
     if [[ "$EXEGOL_PATH" == "/usr/local/bin/exegol" ]]; then
         if [[ -f "/usr/local/bin/exegol" ]]; then
-            success "Exegol est déjà installé directement dans /usr/local/bin/"
+            success "Exegol is already installed directly in /usr/local/bin/"
         else
-            error "Exegol trouvé dans /usr/local/bin/ mais le fichier n'existe pas"
+            error "Exegol found in /usr/local/bin/ but the file does not exist"
             return 1
         fi
     else
-        # Vérifier si le lien existe et pointe vers le bon endroit
+        # Check if the symlink exists and points to the correct location
         if [[ -L /usr/local/bin/exegol ]]; then
             CURRENT_LINK=$(readlink /usr/local/bin/exegol)
             if [[ "$CURRENT_LINK" == "$EXEGOL_PATH" ]]; then
-                success "Lien symbolique vers exegol existe déjà : /usr/local/bin/exegol -> $EXEGOL_PATH"
+                success "Symlink to exegol already exists: /usr/local/bin/exegol -> $EXEGOL_PATH"
             else
-                info "Mise à jour du lien symbolique vers exegol..."
+                info "Updating symlink to exegol..."
                 sudo ln -sf "$EXEGOL_PATH" /usr/local/bin/exegol
-                success "Lien mis à jour : /usr/local/bin/exegol -> $EXEGOL_PATH"
+                success "Symlink updated: /usr/local/bin/exegol -> $EXEGOL_PATH"
             fi
         else
-            info "Création du lien symbolique vers exegol..."
+            info "Creating symlink to exegol..."
             sudo ln -sf "$EXEGOL_PATH" /usr/local/bin/exegol
-            success "Lien créé : /usr/local/bin/exegol -> $EXEGOL_PATH"
+            success "Symlink created: /usr/local/bin/exegol -> $EXEGOL_PATH"
         fi
     fi
     
-    # Accepter l'EULA d'Exegol
-    info "Acceptation de l'EULA d'Exegol..."
+    # Accept Exegol EULA
+    info "Accepting Exegol EULA..."
     if exegol info --accept-eula &>/dev/null; then
-        success "EULA d'Exegol acceptée"
+        success "Exegol EULA accepted"
     else
-        info "EULA d'Exegol déjà acceptée ou non nécessaire"
+        info "Exegol EULA already accepted or not required"
     fi
     
     echo
     if [[ $errors_found -eq 0 ]]; then
-        success "Vérification terminée avec succès !"
+        success "Check completed successfully!"
     else
-        error "Vérification terminée avec $errors_found erreur(s)"
+        error "Check completed with $errors_found error(s)"
         echo
-        info "Résumé des problèmes détectés :"
-        echo "  - Vérifiez que tous les outils requis sont installés"
-        echo "  - Vérifiez que vous avez les droits sudo si nécessaire"
-        echo "  - Vérifiez que les dossiers du projet existent"
+        info "Summary of detected issues:"
+        echo "  - Verify that all required tools are installed"
+        echo "  - Verify that you have sudo rights if needed"
+        echo "  - Verify that project directories exist"
     fi
     echo
-    prompt "Appuyez sur Entrée pour continuer..."
+    prompt "Press Enter to continue..."
     read -r
 }
 
-# ────────────── CONFIGURATION SERVEUR ──────────────
+# ────────────── SERVER CONFIGURATION ──────────────
 
 setup_server() {
     clear_screen
-    info "Configuration du serveur Exegol-update..."
+    info "Setting up Exegol-update server..."
     echo
     
     if [[ ! -f "$SERVER_DIR/setup.sh" ]]; then
-        error "Script setup.sh non trouvé dans $SERVER_DIR"
-        prompt "Appuyez sur Entrée pour continuer..."
+        error "setup.sh script not found in $SERVER_DIR"
+        prompt "Press Enter to continue..."
         read -r
         return 1
     fi
     
-    # Proposer de modifier le crontab par défaut AVANT le setup
-    prompt "Voulez-vous modifier la fréquence du crontab par défaut ? (y/N) : "
+    # Offer to change default crontab BEFORE setup
+    prompt "Do you want to change the default crontab frequency? (y/N): "
     read -r cron_choice
     
     if [[ "$cron_choice" =~ ^[Yy]$ ]]; then
         modify_default_crontab
     fi
     
-    prompt "Voulez-vous lancer le build immédiatement après la configuration ? (y/N) : "
+    prompt "Do you want to change the default image repository (Repo)? (y/N): "
+    read -r change_repo
+    local custom_repo=""
+    if [[ "$change_repo" =~ ^[Yy]$ ]]; then
+        prompt "Enter repository URL: "
+        read -r custom_repo
+    fi
+
+    prompt "Do you want to change the image build profile (e.g., full(default), light, ad, web, custom)? (y/N): "
+    read -r change_profile
+    local custom_profile=""
+    if [[ "$change_profile" =~ ^[Yy]$ ]]; then
+        prompt "Enter profile name: "
+        read -r custom_profile
+    fi
+
+    local setup_flags=()
+    if [[ -n "$custom_repo" ]]; then
+        setup_flags+=(--repo "$custom_repo")
+    fi
+    if [[ -n "$custom_profile" ]]; then
+        setup_flags+=(--profile "$custom_profile")
+    fi
+    
+    prompt "Do you want to run the build immediately after setup? (y/N): "
     read -r NOW_BUILD
     
     if [[ "$NOW_BUILD" =~ ^[Yy]$ ]]; then
-        info "Lancement de la configuration serveur avec build immédiat..."
-        cd "$SERVER_DIR" && ./setup.sh --now
+        setup_flags+=(--now)
+        info "Running server configuration with immediate build..."
     else
-        info "Lancement de la configuration serveur..."
-        cd "$SERVER_DIR" && ./setup.sh
+        info "Running server configuration..."
     fi
     
+    cd "$SERVER_DIR" && ./setup.sh "${setup_flags[@]}"
+    
     echo
-    success "Configuration serveur terminée !"
+    success "Server configuration complete!"
     echo
-    prompt "Appuyez sur Entrée pour continuer..."
+    prompt "Press Enter to continue..."
     read -r
 }
 
-# ────────────── CONFIGURATION CLIENT ──────────────
+# ────────────── SERVER UNINSTALLATION ──────────────
+
+uninstall_server() {
+    clear_screen
+    info "Uninstalling Exegol-update server configuration..."
+    echo
+    
+    prompt "Do you really want to remove EVERYTHING (Docker, Crontab, Binary)? (y/N): "
+    read -r confirm_del
+    
+    if [[ "$confirm_del" =~ ^[Yy]$ ]]; then
+        cd "$SERVER_DIR" && ./setup.sh --uninstall
+    else
+        info "Uninstallation cancelled."
+    fi
+    
+    echo
+    prompt "Press Enter to return to menu..."
+    read -r
+}
+
+
+# ────────────── CLIENT CONFIGURATION ──────────────
 
 setup_client() {
     clear_screen
-    info "Configuration du client Exegol-update..."
+    info "Setting up Exegol-update client..."
     echo
     
     if [[ ! -f "$CLIENT_DIR/initial_setup.sh" ]]; then
-        error "Script initial_setup.sh non trouvé dans $CLIENT_DIR"
-        prompt "Appuyez sur Entrée pour continuer..."
+        error "initial_setup.sh script not found in $CLIENT_DIR"
+        prompt "Press Enter to continue..."
         read -r
         return 1
     fi
     
-    info "Lancement de la configuration client..."
+    info "Running client configuration..."
     cd "$CLIENT_DIR" && ./initial_setup.sh
     
     echo
-    success "Configuration client terminée !"
+    success "Client configuration complete!"
     echo
-    prompt "Appuyez sur Entrée pour continuer..."
+    prompt "Press Enter to continue..."
     read -r
 }
 
-# ────────────── GESTION CRONTAB ──────────────
+# ────────────── CRONTAB MANAGEMENT ──────────────
 
 modify_default_crontab() {
     clear_screen
-    info "Modification du crontab par défaut dans setup.sh..."
+    info "Modifying default crontab in setup.sh..."
     echo
     
-    # Lire la ligne actuelle du crontab dans setup.sh
+    # Read current crontab line in setup.sh
     local setup_file="$SERVER_DIR/setup.sh"
     local current_cron_line=$(grep "^CRON_ENTRY=" "$setup_file" | head -1)
     
     if [[ -n "$current_cron_line" ]]; then
-        info "Crontab actuel dans setup.sh :"
+        info "Current crontab in setup.sh:"
         echo -e "${YELLOW}$current_cron_line${RESET}"
         echo
     fi
     
-    # Boucle pour relancer le choix si l'utilisateur annule
+    # Loop to restart choice if user cancels
     while true; do
-        # Interface visuelle pour choisir la fréquence
+        # Visual interface for frequency selection
         select_frequency_visual
         
-        # Construire la nouvelle ligne CRON_ENTRY
+        # Build new CRON_ENTRY line
         local new_cron_line="CRON_ENTRY=\"$new_schedule /usr/local/bin/exu-server --force\""
         
-        # Afficher la nouvelle tâche cron qui sera créée
+        # Display new cron task that will be created
         echo
-        info "Prochaine tâche cron qui sera créée :"
+        info "Next cron task to be created:"
         echo -e "${YELLOW}$new_cron_line${RESET}"
         echo
         
-        # Demander confirmation
-        prompt "Voulez-vous appliquer cette configuration ? (y/N) : "
+        # Ask for confirmation
+        prompt "Do you want to apply this configuration? (y/N): "
         read -r confirm_cron
         
         if [[ "$confirm_cron" =~ ^[Yy]$ ]]; then
-            # Modifier le fichier setup.sh
+            # Modify setup.sh file
             if sed -i "s|^CRON_ENTRY=.*|$new_cron_line|" "$setup_file"; then
-                success "Crontab modifié dans setup.sh :"
+                success "Crontab modified in setup.sh:"
                 echo -e "${YELLOW}$new_cron_line${RESET}"
             else
-                error "Erreur lors de la modification du fichier setup.sh"
+                error "Error modifying setup.sh file"
             fi
             break
         else
-            info "Modification annulée, nouvelle configuration..."
+            info "Modification cancelled, starting new configuration..."
             echo
-            # Continuer la boucle pour relancer le choix
+            # Continue loop to restart choice
         fi
     done
 }
 
 select_frequency_visual() {
-    echo -e "${YELLOW}Choisissez la fréquence de mise à jour :${RESET}"
+    echo -e "${YELLOW}Choose update frequency:${RESET}"
     echo
     
-    echo -e "  ${GREEN}1${RESET} - Mise à jour quotidienne"
-    echo -e "      Tous les jours à une heure choisie"
+    echo -e "  ${GREEN}1${RESET} - Daily update"
+    echo -e "      Every day at a chosen time"
     echo
-    echo -e "  ${GREEN}2${RESET} - Mise à jour tous les X jours"
-    echo -e "      Tous les X jours à une heure choisie"
+    echo -e "  ${GREEN}2${RESET} - Update every X days"
+    echo -e "      Every X days at a chosen time"
     echo
-    echo -e "  ${GREEN}3${RESET} - Configuration personnalisée"
-    echo -e "      Choisir le jour et l'heure"
+    echo -e "  ${GREEN}3${RESET} - Custom configuration"
+    echo -e "      Choose day and time"
     echo
     
-    prompt "Votre choix (1-3) : "
+    prompt "Your choice (1-3): "
     read -r frequency_choice
     
     case $frequency_choice in
@@ -339,7 +387,7 @@ select_frequency_visual() {
             select_custom_frequency
             ;;
         *)
-            error "Choix invalide, utilisation de la fréquence par défaut"
+            error "Invalid choice, using default frequency"
             new_schedule="0 20 * * *"
             ;;
     esac
@@ -347,90 +395,90 @@ select_frequency_visual() {
 
 select_daily_frequency() {
     echo
-    info "Configuration de la mise à jour quotidienne"
+    info "Setting up daily update"
     echo
     
-    prompt "Entrez l'heure de mise à jour (0-23) : "
+    prompt "Enter update hour (0-23): "
     read -r hour_choice
     
-    # Validation de l'heure
+    # Hour validation
     if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
         new_schedule="0 $hour_choice * * *"
         
         echo
-        info "Résumé de votre configuration :"
-        echo -e "${YELLOW}   Mise à jour tous les jours à ${hour_choice}h00${RESET}"
+        info "Configuration summary:"
+        echo -e "${YELLOW}   Update every day at ${hour_choice}:00${RESET}"
     else
-        error "Heure invalide, utilisation de 20h00"
+        error "Invalid hour, using 20:00"
         new_schedule="0 20 * * *"
         
         echo
-        info "Résumé de votre configuration :"
-        echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+        info "Configuration summary:"
+        echo -e "${YELLOW}   Update every day at 20:00${RESET}"
     fi
 }
 
 select_interval_frequency() {
     echo
-    info "Configuration de la mise à jour tous les X jours"
+    info "Setting up X days interval update"
     echo
     
-    prompt "Entrez le nombre de jours entre chaque mise à jour (1-31) : "
+    prompt "Enter the number of days between each update (1-31): "
     read -r day_interval
     
-    # Validation de l'intervalle
+    # Interval validation
     if [[ "$day_interval" =~ ^[1-9]$ ]] || [[ "$day_interval" =~ ^1[0-9]$ ]] || [[ "$day_interval" =~ ^2[0-9]$ ]] || [[ "$day_interval" =~ ^3[0-1]$ ]]; then
         echo
-        prompt "Entrez l'heure de mise à jour (0-23) : "
+        prompt "Enter update hour (0-23): "
         read -r hour_choice
         
-        # Validation de l'heure
+        # Hour validation
         if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
             new_schedule="0 $hour_choice */$day_interval * *"
             
             echo
-            info "Résumé de votre configuration :"
-            echo -e "${YELLOW}   Mise à jour tous les ${day_interval} jours à ${hour_choice}h00${RESET}"
+            info "Configuration summary:"
+            echo -e "${YELLOW}   Update every ${day_interval} days at ${hour_choice}:00${RESET}"
         else
-            error "Heure invalide, utilisation de 20h00"
+            error "Invalid hour, using 20:00"
             new_schedule="0 20 */$day_interval * *"
             
             echo
-            info "Résumé de votre configuration :"
-            echo -e "${YELLOW}   Mise à jour tous les ${day_interval} jours à 20h00${RESET}"
+            info "Configuration summary:"
+            echo -e "${YELLOW}   Update every ${day_interval} days at 20:00${RESET}"
         fi
     else
-        error "Intervalle invalide, utilisation de 1 jour"
+        error "Invalid interval, using 1 day"
         new_schedule="0 20 * * *"
         
         echo
-        info "Résumé de votre configuration :"
-        echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+        info "Configuration summary:"
+        echo -e "${YELLOW}   Update every day at 20:00${RESET}"
     fi
 }
 
 select_custom_frequency() {
     echo
-    info "Configuration personnalisée"
+    info "Custom configuration"
     echo
     
-    # Sélection du jour
-    echo -e "${YELLOW}Choisissez le jour :${RESET}"
-    echo -e "  ${GREEN}1${RESET} - Lundi"
-    echo -e "  ${GREEN}2${RESET} - Mardi"
-    echo -e "  ${GREEN}3${RESET} - Mercredi"
-    echo -e "  ${GREEN}4${RESET} - Jeudi"
-    echo -e "  ${GREEN}5${RESET} - Vendredi"
-    echo -e "  ${GREEN}6${RESET} - Samedi"
-    echo -e "  ${GREEN}7${RESET} - Dimanche"
-    echo -e "  ${GREEN}8${RESET} - Tous les jours"
+    # Day selection
+    echo -e "${YELLOW}Choose the day:${RESET}"
+    echo -e "  ${GREEN}1${RESET} - Monday"
+    echo -e "  ${GREEN}2${RESET} - Tuesday"
+    echo -e "  ${GREEN}3${RESET} - Wednesday"
+    echo -e "  ${GREEN}4${RESET} - Thursday"
+    echo -e "  ${GREEN}5${RESET} - Friday"
+    echo -e "  ${GREEN}6${RESET} - Saturday"
+    echo -e "  ${GREEN}7${RESET} - Sunday"
+    echo -e "  ${GREEN}8${RESET} - Every day"
     echo
     
-    prompt "Jour (1-8) : "
+    prompt "Day (1-8): "
     read -r day_choice
     
     local day_schedule=""
-    local day_names=("" "Lundi" "Mardi" "Mercredi" "Jeudi" "Vendredi" "Samedi" "Dimanche")
+    local day_names=("" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday")
     case $day_choice in
         1) day_schedule="* * 1" ;;
         2) day_schedule="* * 2" ;;
@@ -441,40 +489,40 @@ select_custom_frequency() {
         7) day_schedule="* * 0" ;;
         8) day_schedule="* * *" ;;
         *) 
-            error "Choix invalide, utilisation du samedi"
+            error "Invalid choice, using Saturday"
             day_schedule="* * 6"
             day_choice=6
             ;;
     esac
     
-    # Sélection de l'heure
+    # Hour selection
     echo
-    prompt "Entrez l'heure de mise à jour (0-23) : "
+    prompt "Enter update hour (0-23): "
     read -r hour_choice
     
-    # Validation de l'heure
+    # Hour validation
     if [[ "$hour_choice" =~ ^[0-9]$ ]] || [[ "$hour_choice" =~ ^1[0-9]$ ]] || [[ "$hour_choice" =~ ^2[0-3]$ ]]; then
         local hour_schedule="0 $hour_choice"
         new_schedule="$hour_schedule $day_schedule"
         
-        # Afficher un résumé
+        # Display summary
         echo
-        info "Résumé de votre configuration :"
+        info "Configuration summary:"
         if [[ "$day_choice" == "8" ]]; then
-            echo -e "${YELLOW}   Mise à jour tous les jours à ${hour_choice}h00${RESET}"
+            echo -e "${YELLOW}   Update every day at ${hour_choice}:00${RESET}"
         else
-            echo -e "${YELLOW}   Mise à jour tous les ${day_names[$day_choice]}s à ${hour_choice}h00${RESET}"
+            echo -e "${YELLOW}   Update every ${day_names[$day_choice]} at ${hour_choice}:00${RESET}"
         fi
     else
-        error "Heure invalide, utilisation de 20h00"
+        error "Invalid hour, using 20:00"
         new_schedule="0 20 $day_schedule"
         
         echo
-        info "Résumé de votre configuration :"
+        info "Configuration summary:"
         if [[ "$day_choice" == "8" ]]; then
-            echo -e "${YELLOW}   Mise à jour tous les jours à 20h00${RESET}"
+            echo -e "${YELLOW}   Update every day at 20:00${RESET}"
         else
-            echo -e "${YELLOW}   Mise à jour tous les ${day_names[$day_choice]}s à 20h00${RESET}"
+            echo -e "${YELLOW}   Update every ${day_names[$day_choice]} at 20:00${RESET}"
         fi
     fi
 }
@@ -526,28 +574,29 @@ validate_cron_format() {
 
 
 
-# ────────────── MENU PRINCIPAL ──────────────
+# ────────────── MAIN MENU ──────────────
 
 main_menu() {
     local current_choice=1
-    local max_choices=5
+    local max_choices=6
     
     while true; do
         show_menu
         
-        # Afficher le curseur sur l'option actuelle
+        # Display cursor on current option
         case $current_choice in
-            1) echo -e "  ${GREEN}▶ 1${RESET} - Configuration du serveur" ;;
-            2) echo -e "  ${GREEN}▶ 2${RESET} - Configuration du client" ;;
-            3) echo -e "  ${GREEN}▶ 3${RESET} - Setup et vérification de l'environnement" ;;
-            4) echo -e "  ${GREEN}▶ 4${RESET} - Build localement (juste le build docker)" ;;
-            5) echo -e "  ${GREEN}▶ 5${RESET} - Quitter" ;;
+            1) echo -e "  ${GREEN}▶ 1${RESET} - Setup and check environment" ;;
+            2) echo -e "  ${GREEN}▶ 2${RESET} - Server configuration" ;;
+            3) echo -e "  ${GREEN}▶ 3${RESET} - Client configuration" ;;
+            4) echo -e "  ${GREEN}▶ 4${RESET} - Build locally (Docker build only)" ;;
+            5) echo -e "  ${GREEN}▶ 5${RESET} - Uninstall server configuration" ;;
+            6) echo -e "  ${GREEN}▶ 6${RESET} - Exit" ;;
         esac
         
         echo
-        prompt "Appuyez sur Entrée pour sélectionner : "
+        prompt "Press Enter to select: "
         
-        # Capturer la touche
+        # Capture key
         local key=$(read_key)
         
         case $key in
@@ -565,92 +614,95 @@ main_menu() {
                     current_choice=1
                 fi
                 ;;
-            "1"|"2"|"3"|"4"|"5")
+            "1"|"2"|"3"|"4"|"5"|"6")
                 current_choice=$key
                 ;;
             "q"|"Q")
                 clear_screen
-                info "Au revoir !"
+                info "Goodbye!"
                 exit 0
                 ;;
-            "")  # Entrée
+            "")  # Enter
                 case $current_choice in
                     1)
-                        setup_server
+                        check_environment
                         ;;
                     2)
-                        setup_client
+                        setup_server
                         ;;
                     3)
-                        check_environment
+                        setup_client
                         ;;
                     4)
                         build_local_only
                         ;;
                     5)
+                        uninstall_server
+                        ;;
+                    6)
                         clear_screen
-                        info "Au revoir !"
+                        info "Goodbye!"
                         exit 0
                         ;;
                 esac
                 ;;
             *)
-                # Ignorer les autres touches
+                # Ignore other keys
                 ;;
         esac
     done
 }
 
-# ────────────── BUILD LOCAL ──────────────
+# ────────────── LOCAL BUILD ──────────────
 
 build_local_only() {
     clear_screen
-    info "Build local Exegol (juste le build docker, pas d'export tar)"
+    info "Local Exegol build (Docker build only, no tar export)"
     echo
     
-    # Vérifier que le script existe
+    # Check that script exists
     if [[ ! -f "$SERVER_DIR/exu-server" ]]; then
-        error "Script exu-server non trouvé dans $SERVER_DIR"
-        prompt "Appuyez sur Entrée pour continuer..."
+        error "exu-server script not found in $SERVER_DIR"
+        prompt "Press Enter to continue..."
         read -r
         return 1
     fi
     
-    # S'assurer que les dossiers nécessaires existent
-    info "Préparation des dossiers..."
+    # Ensure necessary directories exist
+    info "Preparing directories..."
     sudo mkdir -p /exu/exegol-update-server/exu-tars
     sudo mkdir -p /exu/exegol-update-server/exu-logs
     sudo chown -R $USER:$USER /exu/exegol-update-server
     sudo chmod 755 /exu/exegol-update-server/exu-tars
     sudo chmod 755 /exu/exegol-update-server/exu-logs
     
-    # Demander si on veut forcer le build (par défaut oui)
-    prompt "Forcer le build même si pas de nouveau commit ? (Y/n) : "
+    # Ask whether to force build (default yes)
+    prompt "Force build even if no new commit? (Y/n): "
     read -r force_build
     local force_flag="--force"
     if [[ "$force_build" =~ ^[Nn]$ ]]; then
         force_flag=""
     fi
     
-    # Demander le nom de l'image finale
+    # Ask for final image name
     echo
-    prompt "Nom de l'image finale (ex: myexegol:latest ou laisser vide pour défaut) : "
+    prompt "Final image name (e.g., myexegol:latest or leave empty for default): "
     read -r custom_image_name
     
-    # Lancer le build
+    # Run build
     cd "$SERVER_DIR" && ./exu-server --build-only $force_flag
     
-    # Si un nom personnalisé a été fourni, retagger l'image
+    # If custom name provided, retag image
     if [[ -n "$custom_image_name" ]]; then
         echo
-        info "Retag de l'image avec le nom personnalisé..."
+        info "Retagging image with custom name..."
         
-        # Construire le nom complet si nécessaire
+        # Build full name if needed
         if [[ "$custom_image_name" != */* && "$custom_image_name" != *:* ]]; then
             custom_image_name="nwodtuhs/exegol:${custom_image_name}"
         fi
         
-        # Trouver l'image buildée (généralement serverfull ou serverlight)
+        # Find built image (usually serverfull or serverlight)
         local built_image=""
         if docker images | grep -q "nwodtuhs/exegol:serverfull"; then
             built_image="nwodtuhs/exegol:serverfull"
@@ -659,34 +711,34 @@ build_local_only() {
         fi
         
         if [[ -n "$built_image" ]]; then
-            # Vérifier si l'image de destination existe déjà
+            # Check if destination image already exists
             if docker image inspect "$custom_image_name" &>/dev/null; then
-                prompt "Image $custom_image_name existe déjà. La remplacer ? (y/N) : "
+                prompt "Image $custom_image_name already exists. Replace it? (y/N): "
                 read -r replace_image
                 if [[ "$replace_image" =~ ^[Yy]$ ]]; then
                     docker image rm "$custom_image_name" &>/dev/null
-                    success "Ancienne image supprimée : $custom_image_name"
+                    success "Old image removed: $custom_image_name"
                 else
-                    info "Retag annulé."
+                    info "Retag cancelled."
                     custom_image_name=""
                 fi
             fi
             
             if [[ -n "$custom_image_name" ]]; then
                 docker tag "$built_image" "$custom_image_name"
-                success "Image retaggée : $custom_image_name"
+                success "Image retagged: $custom_image_name"
             fi
         else
-            error "Impossible de trouver l'image buildée pour le retag"
+            error "Could not find built image to retag"
         fi
     fi
     
     echo
-    success "Build local terminé !"
-    prompt "Appuyez sur Entrée pour continuer..."
+    success "Local build complete!"
+    prompt "Press Enter to continue..."
     read -r
 }
 
-# ────────────── POINT D'ENTRÉE ──────────────
+# ────────────── ENTRY POINT ──────────────
 
 main_menu

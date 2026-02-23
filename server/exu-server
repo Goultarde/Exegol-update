@@ -2,15 +2,15 @@
 
 # ───────────── CONFIGURATION ─────────────
 
-# Valeurs par défaut
+# Default values
 EXEGOL_PATH='/usr/local/bin/exegol'
 REPO_DIR="/exu/exegol-images"
 REPO_URL="https://github.com/ThePorgs/Exegol-images.git"
 BRANCH="dev"
-BUILD_PROFILE="full" # full=nightly sur la branche dev
+BUILD_PROFILE="full" # full=nightly on dev branch
 IMAGE_NAME="server$BUILD_PROFILE"
 
-# Gestion des options
+# Options management
 FORCE_MODE=false
 BUILD_ONLY_MODE=false
 
@@ -21,11 +21,11 @@ for arg in "$@"; do
             BRANCH="main"
             BUILD_PROFILE="light"
             IMAGE_NAME="server$BUILD_PROFILE"
-            echo "[DEBUG] Mode debug activé : repo Goultarde, branche main, profil light(-100MB)."
+            echo "[DEBUG] Debug mode enabled: Goultarde repo, main branch, light profile (-100MB)."
             ;;
         --force)
             FORCE_MODE=true
-            echo "[FORCE] Mode force activé : build forcé même sans nouveau commit."
+            echo "[FORCE] Force mode enabled: forced build even without a new commit."
             ;;
         --build-only)
             BUILD_ONLY_MODE=true
@@ -33,10 +33,10 @@ for arg in "$@"; do
         -h|--help)
             echo "Usage : $0 [--debug] [--force] [--build-only] [-h|--help]"
             echo
-            echo "  --debug      Utilise le dépôt Goultarde, branche main, profil light (mode test)"
-            echo "  --force      Force le build même sans nouveau commit détecté"
-            echo "  --build-only Build uniquement, sans export tar ni suppression d'image/container"
-            echo "  -h, --help   Affiche cette aide"
+            echo "  --debug      Uses Goultarde repo, main branch, light profile (test mode)"
+            echo "  --force      Forces the build even if no new commit is detected"
+            echo "  --build-only Build only, without tar export or image/container deletion"
+            echo "  -h, --help   Displays this help"
             exit 0
             ;;
         *) ;;
@@ -49,7 +49,7 @@ CHECKSUM_FILE="${TARPATH}/latest_commit.hash"
 LOGPATH=/exu/exegol-update-server/exu-logs
 LOGFILE="${LOGPATH}/exu_$(date '+%F_%T').log"
 
-# Créer les dossiers avec les bonnes permissions
+# Create directories with correct permissions
 mkdir -p "$LOGPATH"
 mkdir -p "$TARPATH"
 chmod 755 "$LOGPATH"
@@ -95,15 +95,15 @@ detect_changes() {
 build_exegol() {
     log "Starting Exegol build for profile: $BUILD_PROFILE"
 
-    # Forcer le dossier d'export à exister
+    # Force the export directory to exist
     mkdir -p "$(dirname "$CHECKSUM_FILE")"
     echo "$LATEST_COMMIT" > "$CHECKSUM_FILE"
 
-    # Créer le fichier de log s'il n'existe pas
+    # Create the log file if it doesn't exist
     touch "$LOGFILE"
     chmod 644 "$LOGFILE"
 
-    # Appel automatique avec profil
+    # Automatic call with profile
     "$EXEGOL_PATH" build $IMAGE_NAME $BUILD_PROFILE --build-path "$REPO_DIR/" --build-log "$LOGFILE" || {
         log "Build failed!"
         exit 1
@@ -116,13 +116,13 @@ build_exegol() {
 export_image() {
     mkdir -p "$(dirname "$TAR_OUTPUT")"
     
-    # Nettoyage des anciens fichiers .tar avec le même préfixe
+    # Clean up old .tar files with the same prefix
     TAR_PREFIX="exegol-${BUILD_PROFILE}"
     OLD_TARS=$(find "$TARPATH" -name "${TAR_PREFIX}-*.tar" -type f)
     if [[ -n "$OLD_TARS" ]]; then
-        log "Nettoyage des anciens fichiers .tar :"
+        log "Cleaning up old .tar files:"
         echo "$OLD_TARS" | while read -r old_tar; do
-            log "  Suppression : $(basename "$old_tar")"
+            log "  Deleting: $(basename "$old_tar")"
             rm -f "$old_tar"
         done
     fi
@@ -130,8 +130,8 @@ export_image() {
     docker save -o "$TAR_OUTPUT" "nwodtuhs/exegol:$IMAGE_NAME"
     chmod -R o+r $TARPATH
     log "Docker image saved to $TAR_OUTPUT"
-    # Suppression de l'image locale après export
-    docker rmi "nwodtuhs/exegol:$IMAGE_NAME" >/dev/null && log "Image locale nwodtuhs/exegol:$IMAGE_NAME supprimée après export."
+    # Delete local image after export
+    docker rmi "nwodtuhs/exegol:$IMAGE_NAME" >/dev/null && log "Local image nwodtuhs/exegol:$IMAGE_NAME deleted after export."
 }
 
 # ───────────── RUN WRAPPER ─────────────

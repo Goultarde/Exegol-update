@@ -18,22 +18,31 @@ CRON_ENTRY="0 0 * * * /usr/local/bin/exu-server --force"
 #| └──────── Heure (0-23)
 #└────────── Minute (0-59)
 
-# ───────────── GESTION DES OPTIONS ─────────────
+# ───────────── OPTIONS MANAGEMENT ─────────────
 
 NOW_MODE=false
+REPO_URL=""
+BUILD_PROFILE=""
+UNINSTALL_MODE=false
 
-# Parsing des arguments
-for arg in "$@"; do
-    case "$arg" in
-        --now) NOW_MODE=true ;;
+# Argument parsing
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --now) NOW_MODE=true; shift ;;
+        --uninstall) UNINSTALL_MODE=true; shift ;;
+        --repo) REPO_URL="$2"; shift 2 ;;
+        --profile) BUILD_PROFILE="$2"; shift 2 ;;
         -h|--help) 
-            echo "Usage : $0 [--now] [-h|--help]"
+            echo "Usage : $0 [--now] [--uninstall] [--repo <url>] [--profile <name>] [-h|--help]"
             echo
-            echo "  --now        Lance exu-server immédiatement après le setup"
-            echo "  -h, --help   Affiche cette aide"
+            echo "  --now        Run exu-server immediately after setup"
+            echo "  --uninstall  Remove server configuration (Docker, crontab, binary)"
+            echo "  --repo       Custom image repository URL (Repo)"
+            echo "  --profile    Image profile name (e.g., light, full)"
+            echo "  -h, --help   Displays this help"
             exit 0
             ;;
-        *) ;;
+        *) shift ;;
     esac
 done
 
@@ -49,62 +58,111 @@ success() { echo -e "${GREEN}[+]${RESET} $1"; }
 error()   { echo -e "${RED}[-]${RESET} $1"; }
 prompt()  { echo -e "${YELLOW}[?]${RESET} $1"; }
 
-# ───────────── Préparation des dossiers ─────────────
+# ───────────── Directory Preparation ─────────────
 
-# Les dossiers sont déjà créés dans exu-server
-# info "Création des répertoires si besoin..."
+# Directories are already created in exu-server
+# info "Creating directories if needed..."
 # mkdir -p /exu/exegol-update-server/exu-tars
 # mkdir -p /exu/exegol-update-server/exu-logs
 
 
-# ───────────── Nettoyage Docker précédent ─────────────
+# ───────────── SERVER UNINSTALLATION ─────────────
 
-if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
-    info "Conteneur $CONTAINER_NAME détecté. Suppression en cours..."
-    docker rm -f "$CONTAINER_NAME" && success "Conteneur supprimé : $CONTAINER_NAME"
+if $UNINSTALL_MODE; then
+    info "Uninstalling server configuration..."
+    
+    # 1. Remove container
+    if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
+        info "Stopping and removing container $CONTAINER_NAME..."
+        cd "$SCRIPT_DIR/docker" && docker compose down
+        docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+        success "Container removed: $CONTAINER_NAME"
+    else
+        info "No $CONTAINER_NAME container found."
+    fi
+
+    # 2. Remove executable
+    if [[ -f "/usr/local/bin/exu-server" ]]; then
+        info "Removing /usr/local/bin/exu-server..."
+        sudo rm -f "/usr/local/bin/exu-server"
+        success "Binary removed."
+    fi
+
+    # 3. Clean up crontab
+    info "Cleaning up cron task..."
+    crontab -l 2>/dev/null > "$CRON_TMP" || touch "$CRON_TMP"
+    if grep -Fq "/usr/local/bin/exu-server" "$CRON_TMP"; then
+        grep -Fv "/usr/local/bin/exu-server" "$CRON_TMP" | crontab -
+        success "Cron task removed."
+    else
+        info "No cron task found for exu-server."
+    fi
+    rm -f "$CRON_TMP"
+
+    echo
+    success "✅ Uninstallation complete."
+    exit 0
 fi
 
-# ───────────── Copier exu-server dans /usr/local/bin ─────────────
 
-info "Installation d'exu-server dans /usr/local/bin..."
+# ───────────── Clean Previous Docker ─────────────
+
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
+    info "Container $CONTAINER_NAME detected. Removing..."
+    docker rm -f "$CONTAINER_NAME" && success "Container removed: $CONTAINER_NAME"
+fi
+
+# ───────────── Copy exu-server to /usr/local/bin ─────────────
+
+info "Installing exu-server to /usr/local/bin..."
 if sudo cp "$EXEGOL_SCRIPT" /usr/local/bin/exu-server; then
+    if [[ -n "$REPO_URL" ]]; then
+        info "Updating custom Repo..."
+        sudo sed -i "s|^REPO_URL=.*|REPO_URL=\"$REPO_URL\"|" /usr/local/bin/exu-server
+    fi
+    if [[ -n "$BUILD_PROFILE" ]]; then
+        info "Updating custom Profile..."
+        sudo sed -i "s|^BUILD_PROFILE=.*|BUILD_PROFILE=\"$BUILD_PROFILE\"|" /usr/local/bin/exu-server
+        sudo sed -i "s|^IMAGE_NAME=.*|IMAGE_NAME=\"server\$BUILD_PROFILE\"|" /usr/local/bin/exu-server
+    fi
+
     sudo chmod +x /usr/local/bin/exu-server
-    success "exu-server installé dans /usr/local/bin/exu-server"
+    success "exu-server installed in /usr/local/bin/exu-server"
 else
-    error "Erreur lors de l'installation d'exu-server"
+    error "Error during exu-server installation"
     exit 1
 fi
 
-# ───────────── Lancer Docker Compose ─────────────
+# ───────────── Launch Docker Compose ─────────────
 
-info "Construction et lancement de Nginx avec Docker Compose..."
+info "Building and launching Nginx with Docker Compose..."
 docker compose -f "$SCRIPT_DIR/docker/docker-compose.yml" up -d --build
 
-# ───────────── Ajout crontab si absente ─────────────
+# ───────────── Add crontab if absent ─────────────
 
-info "Vérification de la présence de la tâche cron pour exu-server..."
+info "Checking for exu-server cron task..."
 
 crontab -l 2>/dev/null > "$CRON_TMP" || touch "$CRON_TMP"
 
 if grep -Fq "$EXEGOL_SCRIPT" "$CRON_TMP"; then
-    info "Tâche cron déjà présente, rien à faire."
+    info "Cron task already present, nothing to do."
 else
     echo "$CRON_ENTRY" >> "$CRON_TMP"
     crontab "$CRON_TMP"
-    success "Tâche cron ajoutée : $CRON_ENTRY"
+    success "Cron task added: $CRON_ENTRY"
 fi
 
 rm -f "$CRON_TMP"
 
-# ───────────── LANCEMENT IMMÉDIAT SI DEMANDÉ ─────────────
+# ───────────── IMMEDIATE LAUNCH IF REQUESTED ─────────────
 
 if $NOW_MODE; then
     echo
-    info "Option --now détectée. Lancement immédiat d'exu-server..."
-    success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
+    info "--now option detected. Launching exu-server immediately..."
+    success "✅ Setup complete. Nginx server online and exu-server automated."
     echo
     "$EXEGOL_SCRIPT" --force
 else
-    success "✅ Setup terminé. Serveur Nginx en ligne et exu-server automatisé."
+    success "✅ Setup complete. Nginx server online and exu-server automated."
 fi
 

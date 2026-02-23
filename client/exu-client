@@ -7,7 +7,7 @@ DEST_DIR="/exu/exegol-update-client"
 DEFAULT_REPO="nwodtuhs/exegol"
 NEW_IMAGE_NAME="FreeNightly"
 
-# ────────────── COULEURS ──────────────
+# ────────────── COLORS ──────────────
 
 BLUE="\033[1;34m"
 GREEN="\033[1;32m"
@@ -20,22 +20,22 @@ success() { echo -e "${GREEN}[+]${RESET} $1"; }
 error()   { echo -e "${RED}[-]${RESET} $1"; }
 prompt()  { echo -ne "${YELLOW}[?]${RESET} $1"; }
 
-# ────────────── AIDE ──────────────
+# ────────────── HELP ──────────────
 
 manual() {
-    echo -e "${BLUE}[*]${RESET} Utilisation : $0 [options]\n"
+    echo -e "${BLUE}[*]${RESET} Usage: $0 [options]\n"
     echo -e "${GREEN}DESCRIPTION${RESET}"
-    echo -e "  Ce script permet de charger automatiquement des images Docker Exegol au format .tar"
-    echo -e "  depuis un serveur HTTP (Nginx) ou un fichier local déjà téléchargé.\n"
-    echo -e "${GREEN}OPTIONS DISPONIBLES${RESET}"
-    echo -e "  ${YELLOW}--list, -l${RESET}           Liste les fichiers .tar disponibles sur le serveur"
-    echo -e "  ${YELLOW}--force, -f${RESET}          Force le téléchargement même si le fichier est déjà présent"
-    echo -e "  ${YELLOW}--load-only${RESET}          Charge un .tar local sans contact serveur"
-    echo -e "  ${YELLOW}--tag=[nom:tag||tag]${RESET} Re-tag l'image après chargement (formats valides : nom:tag ou tag seul)"
-    echo -e "  ${YELLOW}--auto, -a${RESET}           Active un mode automatique"
-    echo -e "  ${YELLOW}--server=[URL]${RESET}       Change l'URL du serveur (format: http://HOST[:PORT])"
-    echo -e "  ${YELLOW}--check-commit${RESET}       Vérifie et affiche s'il y a un nouveau commit disponible"
-    echo -e "  ${YELLOW}-h, --help${RESET}           Affiche cette aide"
+    echo -e "  This script automatically loads Exegol Docker images in .tar format"
+    echo -e "  from an HTTP server (Nginx) or an already downloaded local file.\n"
+    echo -e "${GREEN}AVAILABLE OPTIONS${RESET}"
+    echo -e "  ${YELLOW}--list, -l${RESET}           Lists available .tar files on the server"
+    echo -e "  ${YELLOW}--force, -f${RESET}          Forces download even if the file is already present"
+    echo -e "  ${YELLOW}--load-only${RESET}          Loads a local .tar without contacting the server"
+    echo -e "  ${YELLOW}--tag=[name:tag||tag]${RESET} Re-tags the image after loading (valid formats: name:tag or tag only)"
+    echo -e "  ${YELLOW}--auto, -a${RESET}           Enables automatic mode"
+    echo -e "  ${YELLOW}--server=[URL]${RESET}       Changes server URL (format: http://HOST[:PORT])"
+    echo -e "  ${YELLOW}--check-commit${RESET}       Checks and displays if a new commit is available"
+    echo -e "  ${YELLOW}-h, --help${RESET}           Displays this help"
     exit 0
 }
 
@@ -63,66 +63,66 @@ for arg in "$@"; do
     esac
 done
 
-# ────────────── VALIDATION URL SERVEUR ──────────────
+# ────────────── SERVER URL VALIDATION ──────────────
 
 if [[ -n "$CUSTOM_SERVER_URL" ]]; then
-    # Validation du format de l'URL (accepte IP et noms de domaine, port optionnel)
+    # URL format validation (accepts IP and domain names, optional port)
     if [[ "$CUSTOM_SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+(:[0-9]+)?/?$ ]]; then
         SERVER_URL="$CUSTOM_SERVER_URL"
         
-        # Ajouter le port par défaut si aucun port n'est spécifié
+        # Add default port if no port is specified
         if [[ "$SERVER_URL" =~ ^https?://[a-zA-Z0-9.-]+/?$ ]]; then
             if [[ "$SERVER_URL" =~ ^https:// ]]; then
                 SERVER_URL="${SERVER_URL%?}/:443/"
-                info "Port par défaut ajouté (443)"
+                info "Default port added (443)"
             else
                 SERVER_URL="${SERVER_URL%?}/:80/"
-                info "Port par défaut ajouté (80)"
+                info "Default port added (80)"
             fi
         fi
         
-        # S'assurer que l'URL se termine par /
+        # Ensure URL ends with /
         [[ "$SERVER_URL" != */ ]] && SERVER_URL="${SERVER_URL}/"
-        info "Serveur personnalisé configuré : $SERVER_URL"
+        info "Custom server configured: $SERVER_URL"
     else
-        error "Format d'URL invalide. Utilisez le format : http://HOST[:PORT] ou https://HOST[:PORT]"
-        error "Exemples : --server=http://192.168.1.100:9000"
+        error "Invalid URL format. Use format: http://HOST[:PORT] or https://HOST[:PORT]"
+        error "Examples: --server=http://192.168.1.100:9000"
         error "          --server=https://exegol-server.local:8443"
-        error "          --server=http://exegol.example.com (port 80 par défaut)"
-        error "          --server=https://exegol.example.com (port 443 par défaut)"
+        error "          --server=http://exegol.example.com (default port 80)"
+        error "          --server=https://exegol.example.com (default port 443)"
         exit 1
     fi
 fi
 
-# ────────────── VÉRIFICATION COMMIT ──────────────
+# ────────────── COMMIT CHECK ──────────────
 
 if $CHECK_COMMIT_MODE; then
-    info "Vérification des nouveaux commits sur le serveur..."
+    info "Checking for new commits on the server..."
     
-    # Récupérer le hash du dernier commit depuis le serveur
+    # Retrieve the latest commit hash from the server
     SERVER_COMMIT_HASH=$(curl -s "$SERVER_URL/latest_commit.hash")
     
     if [[ -z "$SERVER_COMMIT_HASH" ]]; then
-        error "Impossible de récupérer le hash du dernier commit depuis le serveur."
+        error "Unable to retrieve the latest commit hash from the server."
         exit 1
     fi
     
-    # Vérifier si on a un fichier de hash local
+    # Check if we have a local hash file
     LOCAL_HASH_FILE="$DEST_DIR/latest_commit.hash"
     if [[ -f "$LOCAL_HASH_FILE" ]]; then
         LOCAL_COMMIT_HASH=$(cat "$LOCAL_HASH_FILE")
         
         if [[ "$SERVER_COMMIT_HASH" = "$LOCAL_COMMIT_HASH" ]]; then
-            echo -e "${RED}[-]${RESET} Pas de nouveau commit"
+            echo -e "${RED}[-]${RESET} No new commit"
         else
-            echo -e "${GREEN}[+]${RESET} Nouveau commit disponible"
+            echo -e "${GREEN}[+]${RESET} New commit available"
         fi
     else
-        echo -e "${GREEN}[+]${RESET} Nouveau commit disponible"
+        echo -e "${GREEN}[+]${RESET} New commit available"
     fi
     
-    # Si on a seulement --check-commit, on s'arrête ici
-    # Sinon on continue pour afficher la liste ou télécharger
+    # If we only have --check-commit, we stop here
+    # Otherwise we continue to display the list or download
     if [[ "$CHECK_COMMIT_MODE" = true && "$LIST_MODE" = false && "$FORCE_MODE" = false && "$LOAD_ONLY_MODE" = false ]]; then
         exit 0
     fi
@@ -132,70 +132,70 @@ fi
 
 mkdir -p "$DEST_DIR"
 
-# ────────────── MODE LOAD-ONLY ──────────────
+# ────────────── LOAD-ONLY MODE ──────────────
 
 if $LOAD_ONLY_MODE; then
-    info "Mode --load-only activé : recherche de fichiers locaux dans $DEST_DIR"
+    info "--load-only mode enabled: searching for local files in $DEST_DIR"
     LOCAL_TARS=$(find "$DEST_DIR" -type f -name '*.tar' | sort)
     if [ -z "$LOCAL_TARS" ]; then
-        error "Aucun fichier .tar trouvé localement."
+        error "No .tar file found locally."
         exit 1
     fi
 
     echo
-    info "Fichiers disponibles localement :"
+    info "Locally available files:"
     echo "$LOCAL_TARS" | nl -w2 -s'. '
     if ! $AUTO_MODE; then
-        prompt "Quel fichier souhaitez-vous charger ? (numéro) : "
+        prompt "Which file do you want to load? (number): "
         read -r INDEX
     else
         INDEX=1
-        info "Mode auto : sélection du premier fichier ($INDEX)"
+        info "Auto mode: selecting the first file ($INDEX)"
     fi
     SELECTED_LOCAL=$(echo "$LOCAL_TARS" | sed -n "${INDEX}p")
 
     if [[ -z "$SELECTED_LOCAL" ]]; then
-        error "Sélection invalide."
+        error "Invalid selection."
         exit 1
     fi
 
-    info "Chargement de $(basename "$SELECTED_LOCAL")..."
+    info "Loading $(basename "$SELECTED_LOCAL")..."
     LOAD_OUT=$(docker load -i "$SELECTED_LOCAL" 2>&1) || {
-        error "Échec docker load."; exit 1;
+        error "docker load failed."; exit 1;
     }
-    success "Image Docker chargée."
+    success "Docker image loaded."
     echo "$LOAD_OUT"
 
     LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
     if [[ -z "$TAG_NAME" ]]; then
         TAG_NAME="${DEFAULT_REPO}:$NEW_IMAGE_NAME"
-        info "Aucun tag spécifié. Utilisation par défaut : $TAG_NAME"
+        info "No tag specified. Using default: $TAG_NAME"
     elif [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]]; then
         TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
     fi
 
     if docker image inspect "$TAG_NAME" &>/dev/null; then
         if ! $AUTO_MODE; then
-            prompt "Image $TAG_NAME existe. Supprimer ? (y/N) : "
+            prompt "Image $TAG_NAME exists. Delete? (y/N): "
             read -r CONFIRM
         else
             CONFIRM=Y
-            info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+            info "Auto mode: deleting existing image ($TAG_NAME)"
         fi
-        [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
-            error "Abandon."; exit 1;
+        [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image deleted: $TAG_NAME" || {
+            error "Aborting."; exit 1;
         }
     fi
 
     if [[ -n "$LOADED_NAME" ]]; then
         docker tag "$LOADED_NAME" "$TAG_NAME"
         docker image rm "$LOADED_NAME" &>/dev/null
-        success "Retaggée : $TAG_NAME"
+        success "Retagged: $TAG_NAME"
     fi
     exit 0
 fi
 
-# ────────────── MODE SERVEUR ──────────────
+# ────────────── SERVER MODE ──────────────
 
 info "Récupération des fichiers .tar depuis le serveur..."
 FILE_LIST=$(curl -s "$SERVER_URL/" | grep -oP 'href="[^"]+\.tar"' | cut -d'"' -f2)
