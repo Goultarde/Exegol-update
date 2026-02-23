@@ -197,99 +197,99 @@ fi
 
 # ────────────── SERVER MODE ──────────────
 
-info "Récupération des fichiers .tar depuis le serveur..."
+info "Retrieving .tar files from the server..."
 FILE_LIST=$(curl -s "$SERVER_URL/" | grep -oP 'href="[^"]+\.tar"' | cut -d'"' -f2)
 
-[[ -z "$FILE_LIST" ]] && { error "Aucun .tar trouvé."; exit 1; }
+[[ -z "$FILE_LIST" ]] && { error "No .tar found."; exit 1; }
 
 if $LIST_MODE; then
     echo
-    info "Fichiers disponibles sur serveur :"
+    info "Available files on server:"
     echo "$FILE_LIST" | nl -w2 -s'. '
     if ! $AUTO_MODE; then
-        prompt "Sélection (numéro) : "
+        prompt "Selection (number): "
         read -r INDEX
     else
         INDEX=1
-        info "Mode auto : sélection du premier fichier ($INDEX)"
+        info "Auto mode: selecting the first file ($INDEX)"
     fi
     SELECTED=$(echo "$FILE_LIST" | sed -n "${INDEX}p")
-    [[ -z "$SELECTED" ]] && { error "Sélection invalide."; exit 1; }
+    [[ -z "$SELECTED" ]] && { error "Invalid selection."; exit 1; }
     TAR_NAME=$(basename "$SELECTED")
 else
     TAR_NAME=$(basename $(echo "$FILE_LIST" | sort -r | head -n 1))
-    info "Dernier fichier disponible : $TAR_NAME"
+    info "Latest available file: $TAR_NAME"
 fi
 
 TAR_URL="$SERVER_URL/$TAR_NAME"
 LOCAL_PATH="$DEST_DIR/$TAR_NAME"
 
 if [[ -f "$LOCAL_PATH" && "$FORCE_MODE" = false ]]; then
-    info "Le fichier $TAR_NAME est déjà présent localement."
-    info "Aucun chargement ne sera effectué."
+    info "File $TAR_NAME is already present locally."
+    info "No download will be performed."
     exit 0
 else
     if ! $AUTO_MODE; then
-        prompt "Voulez-vous télécharger puis charger ce fichier ? (Y/n) : "
+        prompt "Do you want to download and load this file? (Y/n): "
         read -r YES
     else
         YES=Y
-        info "Mode auto : téléchargement automatique."
+        info "Auto mode: automatic download."
     fi
-    [[ -n "$YES" && ! "$YES" =~ ^[Yy]$ ]] && { info "Téléchargement annulé."; exit 0; }
+    [[ -n "$YES" && ! "$YES" =~ ^[Yy]$ ]] && { info "Download cancelled."; exit 0; }
 
-    info "Téléchargement de $TAR_NAME..."
+    info "Downloading $TAR_NAME..."
     curl -fSL "$TAR_URL" -o "$LOCAL_PATH" || {
-        error "Échec du téléchargement."; exit 1;
+        error "Download failed."; exit 1;
     }
-    success "Téléchargement terminé."
+    success "Download complete."
     
-    # Mettre à jour le hash du commit local
+    # Update local commit hash
     curl -s "$SERVER_URL/latest_commit.hash" -o "$DEST_DIR/latest_commit.hash" 2>/dev/null || {
-        info "Impossible de récupérer le hash du commit (non critique)"
+        info "Unable to retrieve commit hash (non-critical)"
     }
 fi
 
-info "Chargement de l'image Docker depuis $TAR_NAME..."
+info "Loading Docker image from $TAR_NAME..."
 LOAD_OUT=$(docker load -i "$LOCAL_PATH" 2>&1) || {
-    error "Échec docker load."; exit 1;
+    error "docker load failed."; exit 1;
 }
 echo "$LOAD_OUT"
-success "Image Docker chargée."
+success "Docker image loaded."
 
 LOADED_NAME=$(echo "$LOAD_OUT" | grep 'Loaded image:' | awk -F': ' '{print $2}')
 if [[ -z "$TAG_NAME" ]]; then
     TAG_NAME="${DEFAULT_REPO}:$NEW_IMAGE_NAME"
-    info "Aucun tag spécifié. Utilisation par défaut : $TAG_NAME"
+    info "No tag specified. Using default: $TAG_NAME"
 elif [[ "$TAG_NAME" != */* && "$TAG_NAME" != *:* ]]; then
     TAG_NAME="${DEFAULT_REPO}:${TAG_NAME}"
 fi
 
 if docker image inspect "$TAG_NAME" &>/dev/null; then
     if ! $AUTO_MODE; then
-        prompt "Image $TAG_NAME existe. Supprimer ? (y/N) : "
+        prompt "Image $TAG_NAME exists. Delete? (y/N): "
         read -r CONFIRM
     else
         CONFIRM=Y
-        info "Mode auto : suppression de l'image existante ($TAG_NAME)"
+        info "Auto mode: deleting existing image ($TAG_NAME)"
     fi
-    [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image supprimée : $TAG_NAME" || {
-        error "Abandon."; exit 1;
+    [[ "$CONFIRM" =~ ^[Yy]$ ]] && docker image rm "$TAG_NAME" &>/dev/null && success "Image deleted: $TAG_NAME" || {
+        error "Aborting."; exit 1;
     }
 fi
 
 if [[ -n "$LOADED_NAME" ]]; then
     docker tag "$LOADED_NAME" "$TAG_NAME"
     docker image rm "$LOADED_NAME" &>/dev/null
-    success "Retaggée : $TAG_NAME"
+    success "Retagged: $TAG_NAME"
 fi
 
 if ! $AUTO_MODE; then
-    prompt "Supprimer le fichier $TAR_NAME ? (y/N) : "
+    prompt "Delete file $TAR_NAME? (y/N): "
     read -r CONFIRM_DELETE
 else
     CONFIRM_DELETE=N
-    info "Mode auto : le fichier est conservé."
+    info "Auto mode: file is kept."
 fi
-[[ "$CONFIRM_DELETE" =~ ^[Yy]$ ]] && rm -f "$LOCAL_PATH" && success "Fichier supprimé." || info "Fichier conservé."
+[[ "$CONFIRM_DELETE" =~ ^[Yy]$ ]] && rm -f "$LOCAL_PATH" && success "File deleted." || info "File kept."
 

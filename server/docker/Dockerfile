@@ -1,9 +1,9 @@
 FROM nginx:alpine
 
-# Création du répertoire de destination dans le conteneur
+# Creation of destination directory in container
 RUN mkdir -p /exu/exegol-update-server/exu-tars
 
-# Copie du fichier de configuration Nginx personnalisé
+# Copying the custom Nginx configuration file
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Point de montage pour les archives Exegol

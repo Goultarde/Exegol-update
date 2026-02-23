@@ -1,28 +1,28 @@
-# ⚠️ AVERTISSEMENT : Projet en version bêta !
+# ⚠️ WARNING: Beta version project!
 
-Ce projet est en cours de développement. 
+This project is currently under development. 
 # Exegol-update
 
-## Présentation
+## Overview
 
-Exegol-update est un outil facilitant la gestion, la distribution et le chargement automatisé d'images Docker Exegol, via une architecture client-serveur moderne basée sur Docker et Nginx.
+Exegol-update is a tool that facilitates the management, distribution, and automated loading of Exegol Docker images, via a modern client-server architecture based on Docker and Nginx.
 
-## Prérequis
+## Prerequisites
 
-- Système Linux avec droits administrateur (root)
-- [Exegol](https://github.com/ThePorgs/Exegol) installé sur le serveur (utilisé pour le build des images)
-- [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/) installés
+- Linux system with administrator (root) rights
+- [Exegol](https://github.com/ThePorgs/Exegol) installed on the server (used for building images)
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
 
 ## Installation
 
-### 1. Installer Cronie, Docker, Docker Compose et ce rajouter dans le groupe docker
+### 1. Install Cronie, Docker, Docker Compose and add yourself to the docker group
 ```bash
 sudo usermod -aG docker $USER
-newgrp docker # temportaire, il vaut mieux redémarer la session
+newgrp docker # temporary, it's better to restart the session
 sudo systemctl enable docker --now
 ```
 
-### 2. Installer Exegol (sur le serveur)
+### 2. Install Exegol (on the server)
 
 ```bash
 pipx install exegol
@@ -30,199 +30,203 @@ pipx ensurepath
 exec [bash|zsh|...]
 ```
 
-### 3. Cloner ce dépôt
+### 3. Clone this repository
 
 ```bash
-git clone https://github.com/Goultarde/Exegol-update.git  && cd Exegol-update
+git clone https://github.com/Goultarde/Exegol-update.git && cd Exegol-update
 ```
 
 
 
 
-## Utilisation
+## Usage
 
-### Interface TUI de configuration
+### Configuration TUI
 
-Exegol-update dispose d'une interface TUI (Terminal User Interface) pour simplifier la configuration :
+Exegol-update features a TUI (Terminal User Interface) to simplify configuration:
 
 ```bash
 ./exu.sh
 ```
 
-Cette interface vous permet de :
+This interface allows you to:
 
-#### **Menu principal**
+#### **Main menu**
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║                    EXEGOL-UPDATE SETUP                       ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Choisissez une option :
+Choose an option:
 
-  1 - Configuration du serveur
-  2 - Configuration du client
-  3 - Setup et vérification de l'environnement
-  4 - Quitter
+  1 - Setup and check environment
+  2 - Server configuration
+  3 - Client configuration
+  4 - Build locally (Docker build only)
+  5 - Uninstall server configuration
+  6 - Exit
 
-Utilisez les flèches ↑↓ ou les chiffres (1-4) pour naviguer
-Appuyez sur 'q' pour quitter directement
+Use ↑↓ arrows or numbers (1-6) to navigate
+Press 'q' to quit directly
 ```
 
-#### **Options disponibles**
+#### **Available options**
 
-- **1 - Configuration du serveur** : Lance `server/setup.sh` avec option de build immédiat
-- **2 - Configuration du client** : Lance `client/initial_setup.sh` pour configurer le client
-- **3 - Setup et vérification de l'environnement** : Vérifie et configure automatiquement l'environnement
-- **4 - Quitter** : Sortie propre de l'interface
+- **1 - Setup and check environment**: Automatically checks and configures the environment
+- **2 - Server configuration**: Launches `server/setup.sh` with an option for immediate build
+- **3 - Client configuration**: Launches `client/initial_setup.sh` to configure the client
+- **4 - Build locally (Docker build only)**: Builds the Exegol image locally without tar export
+- **5 - Uninstall server configuration**: Removes the server setup (Docker container, cron task, bin)
+- **6 - Exit**: Clean exit from the interface
 
 #### **Navigation**
-- **Flèches ↑↓** : Naviguer dans le menu
-- **Chiffres 1-4** : Sélection directe
-- **Entrée** : Confirmer la sélection
-- **q** : Quitter rapidement
+- **↑↓ arrows**: Navigate the menu
+- **Numbers 1-6**: Direct selection
+- **Enter**: Confirm selection
+- **q**: Quick exit
 
-### Configuration automatique de l'environnement
+### Automatic environment configuration
 
-L'option 3 (Setup et vérification de l'environnement) effectue automatiquement :
+Option 1 (Setup and check environment) automatically performs:
 
-- ✅ Vérification d'Exegol, Docker et Docker Compose
-- ✅ Création du dossier `/exu` avec les bonnes permissions
-- ✅ Création du lien symbolique vers exegol dans `/usr/local/bin/`
-- ✅ Acceptation automatique de l'EULA d'Exegol
-- ✅ Vérification des dossiers serveur/client
+- ✅ Exegol, Docker and Docker Compose verification
+- ✅ Creation of `/exu` directory with correct permissions
+- ✅ Creation of symlink to exegol in `/usr/local/bin/`
+- ✅ Automatic acceptance of Exegol EULA
+- ✅ Verification of server/client directories
 
-### Fonctionnement du déploiement du serveur
+### Server deployment workflow
 
-Le déploiement du serveur se fait via l'interface TUI (option 1) qui lance automatiquement :
+Server deployment is done via the TUI (option 2) which automatically handles:
 
-- Préparation des dossiers nécessaires pour stocker les images et les logs
-- Déploiement d'un serveur Nginx dans un conteneur Docker pour exposer les images `.tar`
-- Ajout d'une tâche cron pour automatiser la gestion des images
-- Option de build immédiat pour un premier déploiement
+- Preparation of necessary directories to store images and logs
+- Deployment of an Nginx server in a Docker container to expose `.tar` images
+- Addition of a cron task to automate image management
+- Option for immediate build for initial deployment
 
-### Utilisation du client
+### Client usage
 
-#### **Configuration automatique**
-La configuration du client se fait via l'interface TUI (option 2) qui :
+#### **Automatic configuration**
+Client configuration is done via the TUI (option 3) which:
 
-- Installe `exu-client` dans `/usr/local/bin/` (accessible globalement)
-- Configure automatiquement le fichier `/etc/hosts` avec l'IP du serveur
-- Crée l'entrée `exegol.update` pour faciliter la connexion
+- Installs `exu-client` in `/usr/local/bin/` (globally accessible)
+- Automatically configures the `/etc/hosts` file with the server's IP
+- Creates the `exegol.update` entry to facilitate connection
 
-#### **Utilisation du client**
+#### **Using the client**
 ```bash
 exu-client [options]
 ```
 
-Si aucune option n'est fournie, exu-client télécharge et charge automatiquement la dernière image .tar disponible sur le serveur, sauf si elle est déjà présente localement. Une confirmation sera demandée avant chaque action importante, sauf si les mode --auto et ou --force sont activé.
+If no options are provided, exu-client automatically downloads and loads the latest available .tar image on the server, unless it's already present locally. A confirmation will be requested before any major action, unless --auto and/or --force modes are enabled.
 
-#### Options principales
+#### Main options
 
-- `--list, -l` : Liste les images disponibles sur le serveur
-- `--force, -f` : Force le téléchargement même si le fichier existe déjà
-- `--load-only` : Charge une image locale sans contacter le serveur
-- `--tag=[nom:tag||tag]` : Re-tag l'image après chargement (formats valides : `nom:tag` ou `tag` seul). Par défaut, le tag est "FreeNightly" (modifiable dans le code).
-- `--auto, -a` : Mode automatique (aucune interaction requise)
-- `--server=[URL]` : Change l'URL du serveur (format : `http://HOST:PORT` ou `https://HOST:PORT`)
-- `--check-commit` : Vérifie et affiche s'il y a un nouveau commit disponible (basé sur le hash Git)
-- `-h, --help` : Affiche l'aide détaillée
+- `--list, -l` : Lists available images on the server
+- `--force, -f` : Forces download even if the file already exists
+- `--load-only` : Loads a local image without contacting the server
+- `--tag=[name:tag||tag]` : Re-tags the image after loading (valid formats: `name:tag` or `tag` only). By default, the tag is "FreeNightly" (modifiable in the code).
+- `--auto, -a` : Automatic mode (no interaction required)
+- `--server=[URL]` : Changes the server URL (format: `http://HOST:PORT` or `https://HOST:PORT`)
+- `--check-commit` : Checks and displays if a new commit is available (based on Git hash)
+- `-h, --help` : Displays detailed help
 
-#### Exemples d'utilisation
+#### Usage examples
 
 ```bash
-# Utilisation basique (serveur local par défaut)
+# Basic usage (default local server)
 exu-client
 
-# Connexion à un serveur distant
+# Connection to a remote server
 exu-client --server=http://192.168.1.100:9000
 exu-client --server=https://exegol-server.local:8443
 
-# Utilisation avec nom de domaine configuré
+# Usage with configured domain name
 exu-client --server=http://exegol.update:9000
 
-# Vérification des nouveaux commits
+# Checking for new commits
 exu-client --check-commit
 exu-client --server=http://192.168.1.100:9000 --check-commit
 
-# Combinaison d'options
+# Combining options
 exu-client --server=http://exegol.example.com:9000 --auto --force --tag=Nightly
 exu-client --server=https://exu-prod.internal:8443 --list
 ```
 
 ## Architecture
 
-- **Serveur** : Expose les images Docker via Nginx dans un conteneur, avec gestion automatisée par cron.
-- **Client** : Télécharge, charge et re-tag les images Docker de façon interactive ou automatisée.
+- **Server**: Exposes Docker images via Nginx in a container, with automated management by cron.
+- **Client**: Downloads, loads, and re-tags Docker images interactively or automatically.
 
-## Script serveur : exu-server
+## Server script: exu-server
 
-Le script `exu-server` (présent dans le dossier `server/`) automatise les étapes suivantes :
-- Clonage ou mise à jour du dépôt d'images Exegol
-- Construction de l'image Docker selon le profil défini
-- Export de l'image au format `.tar` dans le dossier partagé
-- Journalisation des opérations dans un fichier de log
+The `exu-server` script (located in the `server/` folder) automates the following steps:
+- Cloning or updating the Exegol images repository
+- Building the Docker image according to the defined profile
+- Exporting the image in `.tar` format into the shared folder
+- Logging operations in a log file
 
-### Options disponibles
+### Available options
 
-- `--debug` : Utilise le dépôt Goultarde, branche main, profil light (mode test)
-- `--force` : Force le build même sans nouveau commit détecté
-- `-h, --help` : Affiche l'aide et quitte le script
+- `--debug` : Uses the Goultarde repository, main branch, light profile (test mode)
+- `--force` : Forces the build even without a newly detected commit
+- `--build-only` : Builds the image only, without exporting it or deleting anything
+- `-h, --help` : Displays help and exits the script
 
-### Nettoyage automatique
+### Automatic cleanup
 
-Le script `exu-server` nettoie automatiquement les anciens fichiers `.tar` :
-- Supprime tous les fichiers `.tar` avec le même préfixe avant de créer le nouveau
-- Évite l'accumulation de fichiers anciens
-- Garde seulement le fichier le plus récent par profil
+The `exu-server` script automatically cleans up old `.tar` files:
+- Removes all `.tar` files with the same prefix before creating the new one
+- Prevents the accumulation of old files
+- Keeps only the most recent file per profile
 
-Ce script est normalement lancé automatiquement via une tâche cron (voir la section "Déploiement du serveur").
+This script is normally launched automatically via a cron task (see the "Server deployment" section).
 
-**Il peut également être exécuté manuellement à tout moment pour forcer une mise à jour immédiate :**
+**It can also be executed manually at any time to force an immediate update:**
 
 ```bash
 cd server
-./exu-server [--force] [--debug]
+./exu-server [--force] [--debug] [--build-only]
 ```
 
-Cela permet de déclencher la reconstruction et l'export de l'image sans attendre la prochaine exécution planifiée.
+This triggers the rebuilding and exporting of the image without waiting for the next scheduled execution.
 
-### Vérification des nouveaux commits
+### Checking for new commits
 
-Le client `exu-client` peut vérifier rapidement s'il y a de nouveaux commits disponibles sans télécharger d'images :
+The `exu-client` client can quickly check if new commits are available without downloading images:
 
 ```bash
 exu-client --check-commit
 ```
 
-Cette commande :
-- Récupère le hash du dernier commit depuis le serveur (`latest_commit.hash`)
-- Compare avec le hash local stocké
-- Affiche `[+] Nouveau commit disponible` ou `[-] Pas de nouveau commit`
+This command:
+- Retrieves the latest commit hash from the server (`latest_commit.hash`)
+- Compares it with the locally stored hash
+- Displays `[+] New commit available` or `[-] No new commit`
 
-Cette fonctionnalité est utile pour :
-- Vérifier rapidement l'état des mises à jour
-- Automatiser les vérifications dans des scripts
-- Éviter les téléchargements inutiles
+This feature is useful for:
+- Quickly checking the status of updates
+- Automating checks in scripts
+- Avoiding unnecessary downloads
 
-## Fonctionnalités avancées
+## Advanced features
 
-### Gestion des ports par défaut
+### Default port management
 
-Le client `exu-client` supporte les URLs sans port spécifié :
-- **HTTP** : Port 80 par défaut
-- **HTTPS** : Port 443 par défaut
+The `exu-client` client supports URLs without a specified port:
+- **HTTP**: Default port 80
+- **HTTPS**: Default port 443
 
 ```bash
-# Ces commandes sont équivalentes
+# These commands are equivalent
 exu-client --server=http://exegol.example.com:80
 exu-client --server=http://exegol.example.com
 
-# Ces commandes sont équivalentes
+# These commands are equivalent
 exu-client --server=https://exegol.example.com:443
 exu-client --server=https://exegol.example.com
 ```
 
-### Synchronisation automatique des hashes
+### Automatic hash synchronization
 
-Le client met automatiquement à jour son fichier `latest_commit.hash` local après chaque téléchargement réussi, garantissant des vérifications de commits précises lors des prochaines utilisations.
-
+The client automatically updates its local `latest_commit.hash` file after each successful download, ensuring accurate commit checks during future uses.

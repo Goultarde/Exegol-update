@@ -530,20 +530,20 @@ select_custom_frequency() {
 validate_cron_format() {
     local cron_expr="$1"
     
-    # Vérifier que l'expression a exactement 5 champs
+    # Verify that the expression has exactly 5 fields
     local field_count=$(echo "$cron_expr" | wc -w)
     if [[ $field_count -ne 5 ]]; then
         return 1
     fi
     
-    # Extraire les champs
+    # Extract fields
     local minute=$(echo "$cron_expr" | awk '{print $1}')
     local hour=$(echo "$cron_expr" | awk '{print $2}')
     local day_month=$(echo "$cron_expr" | awk '{print $3}')
     local month=$(echo "$cron_expr" | awk '{print $4}')
     local day_week=$(echo "$cron_expr" | awk '{print $5}')
     
-    # Validation basique des champs
+    # Basic field validation
     # Minute: 0-59
     if ! [[ "$minute" =~ ^[0-5]?[0-9]$ ]] && [[ "$minute" != "*" ]]; then
         return 1
@@ -559,12 +559,12 @@ validate_cron_format() {
         return 1
     fi
     
-    # Mois: 1-12
+    # Month: 1-12
     if ! [[ "$month" =~ ^[1-9]?[0-2]?$ ]] && [[ "$month" != "*" ]]; then
         return 1
     fi
     
-    # Jour de la semaine: 0-7 (0 et 7 = dimanche)
+    # Day of week: 0-7 (0 and 7 = Sunday)
     if ! [[ "$day_week" =~ ^[0-7]$ ]] && [[ "$day_week" != "*" ]]; then
         return 1
     fi
