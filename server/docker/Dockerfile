@@ -6,8 +6,8 @@ RUN mkdir -p /exu/exegol-update-server/exu-tars
 # Copying the custom Nginx configuration file
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Point de montage pour les archives Exegol
+# Mount point for Exegol archives
 VOLUME ["/exu/exegol-update-server/exu-tars"]
 
-# Expose le port HTTP standard
+# Expose the standard HTTP port
 EXPOSE 80
