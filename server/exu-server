@@ -69,7 +69,9 @@ update_repo() {
         git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
     else
         log "Pulling latest changes..."
-        cd "$REPO_DIR" && git fetch origin "$BRANCH" && git reset --hard origin/"$BRANCH"
+        cd "$REPO_DIR"
+        git remote set-url origin "$REPO_URL"
+        git fetch origin "$BRANCH" && git reset --hard origin/"$BRANCH"
     fi
 }
 
