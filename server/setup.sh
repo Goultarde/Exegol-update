@@ -168,7 +168,7 @@ if $NOW_MODE; then
     info "--now option detected. Launching exu-server immediately..."
     success "✅ Setup complete. Nginx server online and exu-server automated."
     echo
-    "$EXEGOL_SCRIPT" --force
+    /usr/local/bin/exu-server --force
 else
     success "✅ Setup complete. Nginx server online and exu-server automated."
 fi
