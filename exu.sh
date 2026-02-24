@@ -224,6 +224,8 @@ setup_server() {
     if [[ "$change_repo" =~ ^[Yy]$ ]]; then
         prompt "Enter repository URL: "
         read -r custom_repo
+    elif [[ -n "$change_repo" && ! "$change_repo" =~ ^[Nn]$ ]]; then
+        custom_repo="$change_repo"
     fi
 
     prompt "Do you want to change the image build profile (e.g., full(default), light, ad, web, custom)? (y/N): "
@@ -232,6 +234,8 @@ setup_server() {
     if [[ "$change_profile" =~ ^[Yy]$ ]]; then
         prompt "Enter profile name: "
         read -r custom_profile
+    elif [[ -n "$change_profile" && ! "$change_profile" =~ ^[Nn]$ ]]; then
+        custom_profile="$change_profile"
     fi
 
     prompt "Do you want to change the Git branch (e.g., dev(default), main)? (y/N): "
@@ -240,6 +244,8 @@ setup_server() {
     if [[ "$change_branch" =~ ^[Yy]$ ]]; then
         prompt "Enter branch name: "
         read -r custom_branch
+    elif [[ -n "$change_branch" && ! "$change_branch" =~ ^[Nn]$ ]]; then
+        custom_branch="$change_branch"
     fi
 
     local setup_flags=()
